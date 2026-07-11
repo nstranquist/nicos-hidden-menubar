@@ -36,7 +36,7 @@ final class ParityModelTests: XCTestCase {
         XCTAssertEqual(decoded.configuredRevealMode, .automatic)
     }
 
-    func testIceBarHiddenCandidatesFilterLeftOfToggleAndExcludeImmovable() {
+    func testIceBarHiddenCandidatesFilterLeftOfToggleAndExcludeOwnControls() {
         func win(_ id: CGWindowID, minX: Double, width: Double, ns: String) -> MenuBarWindowInfo {
             MenuBarWindowInfo(
                 windowID: id,
@@ -49,11 +49,15 @@ final class ParityModelTests: XCTestCase {
         }
         let items = [
             win(1, minX: 100, width: 24, ns: "com.example.a"),           // left of toggle → hidden
-            win(2, minX: 200, width: 24, ns: "com.apple.controlcenter"), // immovable → excluded
+            win(2, minX: 200, width: 24, ns: "com.apple.controlcenter"), // system extra → included
             win(3, minX: 900, width: 24, ns: "com.example.b"),           // right of toggle → not hidden
+            MenuBarWindowInfo(
+                windowID: 4, frame: CGRect(x: 300, y: 0, width: 24, height: 24),
+                ownerPID: 42, ownerName: "Nicos Hidden Bar", title: "", isOnScreen: true
+            ),
         ]
-        let hidden = IceBarModel.hiddenCandidates(items, leftOfX: 700)
-        XCTAssertEqual(hidden.map(\.windowID), [1])
+        let hidden = IceBarModel.hiddenCandidates(items, leftOfX: 700, excludingOwnerPID: 42)
+        XCTAssertEqual(hidden.map(\.windowID), [1, 2])
     }
 
     func testIceBarHiddenCandidatesWithoutAnchorReturnsAllMovable() {

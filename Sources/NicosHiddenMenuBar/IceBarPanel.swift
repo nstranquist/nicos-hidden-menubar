@@ -101,13 +101,13 @@ struct IceBarLayout: Equatable, Sendable {
     static func calculate(itemCount: Int, visibleFrame: CGRect) -> IceBarLayout {
         let horizontalMargin: CGFloat = 12
         let verticalMargin: CGFloat = 24
-        let itemWidth: CGFloat = 72
+        let itemWidth: CGFloat = 92
         let rowHeight: CGFloat = 38
         let chromeWidth: CGFloat = 20
         let chromeHeight: CGFloat = 16
         let searchHeight: CGFloat = itemCount > 8 ? 30 : 0
         let maxWidth = max(160, visibleFrame.width - horizontalMargin)
-        let maxColumns = max(1, min(8, Int((maxWidth - chromeWidth) / itemWidth)))
+        let maxColumns = max(1, min(7, Int((maxWidth - chromeWidth) / itemWidth)))
         let columnCount = min(maxColumns, max(1, itemCount))
         let rowCount = max(1, Int(ceil(Double(max(1, itemCount)) / Double(columnCount))))
         let width = min(maxWidth, max(160, CGFloat(columnCount) * itemWidth + chromeWidth))
@@ -139,7 +139,8 @@ final class IceBarModel: ObservableObject {
     func reload(on screen: NSScreen, leftOfX: Double?) async {
         let detailed = IceBarModel.hiddenCandidates(
             MenuBarItemScanner.detailedItems(screen: screen),
-            leftOfX: leftOfX
+            leftOfX: leftOfX,
+            excludingOwnerPID: ProcessInfo.processInfo.processIdentifier
         )
         let captured = await MenuBarItemImageCapture.capture(items: detailed, on: screen)
         guard !Task.isCancelled else { return }
@@ -154,12 +155,17 @@ final class IceBarModel: ObservableObject {
         columnCount = 1
     }
 
-    /// Hidden items are those positioned left of our toggle (the divider the hide
-    /// mechanism controls), excluding immovable system items. With no anchor we
-    /// fall back to all movable items. Pure so it's unit-tested.
-    nonisolated static func hiddenCandidates(_ items: [MenuBarWindowInfo], leftOfX: Double?) -> [MenuBarWindowInfo] {
+    /// Hidden items are those positioned left of our toggle (the divider the
+    /// hide mechanism controls). System menu extras belong here too: the panel
+    /// is the notch-safe way to reach them. Only this app's own control windows
+    /// are excluded. With no anchor, fall back to all foreign items.
+    nonisolated static func hiddenCandidates(
+        _ items: [MenuBarWindowInfo],
+        leftOfX: Double?,
+        excludingOwnerPID: pid_t? = nil
+    ) -> [MenuBarWindowInfo] {
         items.filter { item in
-            guard !item.info.isLikelyImmovable else { return false }
+            guard item.ownerPID != excludingOwnerPID else { return false }
             guard let leftOfX else { return true }
             return Double(item.frame.maxX) <= leftOfX
         }
@@ -237,6 +243,9 @@ private struct IceBarView: View {
         } else {
             Text(shortLabel(item.displayName))
                 .font(.system(size: 11, weight: .medium))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .truncationMode(.tail)
                 .padding(.horizontal, 8)
                 .padding(.vertical, 4)
                 .background(RoundedRectangle(cornerRadius: 5).fill(.white.opacity(0.08)))
