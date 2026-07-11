@@ -119,9 +119,9 @@ final class StatusSectionController: NSObject {
         let visibleFrameMaxX = MarkerGeometry.preferredVisibleFrameMaxX(
             primaryMinX: primaryX,
             preferredVisibleFrameMaxX: [
-                geometrySnapshot.mouseScreenVisibleMaxX,
                 geometrySnapshot.toggleScreenVisibleMaxX,
                 geometrySnapshot.primaryScreenVisibleMaxX,
+                geometrySnapshot.mouseScreenVisibleMaxX,
             ],
             fallbackVisibleFrameMaxX: geometrySnapshot.allScreenVisibleMaxX
         )
@@ -360,7 +360,11 @@ final class StatusSectionController: NSObject {
     }
 
     private func updateMarkerTitles() {
-        let hideMarkers = preferencesStore.config.hideMarkersWhileExpanded && toggleState == .expanded
+        // The primary item becomes a wide invisible spacer while collapsed.
+        // Drawing the divider then centers it inside the empty region, which
+        // looks like a stray marker in the middle of the display.
+        let hideMarkers = toggleState == .collapsed
+            || (preferencesStore.config.hideMarkersWhileExpanded && toggleState == .expanded)
         primarySeparatorItem.button?.title = hideMarkers ? "" : "¦"
         secondarySeparatorItem.button?.title = hideMarkers ? "" : "¦"
     }
@@ -422,9 +426,10 @@ final class StatusSectionController: NSObject {
     }
 
     private func currentMarkerOrderValid() -> Bool {
-        MarkerGeometry.isValidOrder(
+        let primaryX = compactPrimaryMinX()
+        return MarkerGeometry.isValidOrder(
             toggleX: asDouble(toggleItem.button?.window?.frame.minX),
-            primaryX: asDouble(primarySeparatorItem.button?.window?.frame.minX),
+            primaryX: primaryX,
             secondaryX: asDouble(secondarySeparatorItem.button?.window?.frame.minX),
             alwaysHiddenEnabled: preferencesStore.config.lanes.alwaysHiddenEnabled
         )
@@ -436,7 +441,10 @@ final class StatusSectionController: NSObject {
 
     private func currentGeometrySnapshot() -> HiddenBarGeometrySnapshot {
         let toggleX = asDouble(toggleItem.button?.window?.frame.minX)
-        let primaryX = asDouble(primarySeparatorItem.button?.window?.frame.minX)
+        // Normalize to the compact divider position. Without this, every
+        // geometry refresh while collapsed treats the already-inflated
+        // spacer's minX as a new baseline and grows it again.
+        let primaryX = compactPrimaryMinX()
         let secondaryX = asDouble(secondarySeparatorItem.button?.window?.frame.minX)
         let toggleScreen = toggleItem.button?.window?.screen
         let primaryScreen = primarySeparatorItem.button?.window?.screen
@@ -479,6 +487,14 @@ final class StatusSectionController: NSObject {
             realHideableItemCount: scan?.hideableItemCount,
             realLeftmostMinX: scan?.leftmostMinX,
             notchDetected: scan?.hasNotch
+        )
+    }
+
+    private func compactPrimaryMinX() -> Double? {
+        MarkerGeometry.compactMinX(
+            currentMinX: asDouble(primarySeparatorItem.button?.window?.frame.minX),
+            currentWidth: asDouble(primarySeparatorItem.button?.window?.frame.width),
+            compactWidth: Double(primaryExpandedLength(for: preferencesStore.config))
         )
     }
 

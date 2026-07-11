@@ -45,6 +45,23 @@ public enum MarkerGeometry {
         return max(minCollapseWidth, min(rawWidth, maxCollapseWidth))
     }
 
+    /// Recover the divider's compact-position x coordinate even while its
+    /// status item is acting as an inflated spacer. NSStatusItem keeps the
+    /// item's right edge anchored as its length changes, so using the raw
+    /// `frame.minX` on a second collapse compounds the previous width.
+    public static func compactMinX(
+        currentMinX: Double?,
+        currentWidth: Double?,
+        compactWidth: Double
+    ) -> Double? {
+        guard let currentMinX, let currentWidth,
+              currentWidth >= 0, compactWidth >= 0
+        else {
+            return nil
+        }
+        return currentMinX + max(0, currentWidth - compactWidth)
+    }
+
     public static func preferredVisibleFrameMaxX(
         primaryMinX: Double?,
         preferredVisibleFrameMaxX: [Double?],

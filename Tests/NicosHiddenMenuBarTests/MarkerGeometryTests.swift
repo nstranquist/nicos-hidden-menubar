@@ -2,6 +2,22 @@ import XCTest
 @testable import NicosHiddenMenuBar
 
 final class MarkerGeometryTests: XCTestCase {
+    func testCompactMinXMakesRepeatedCollapseMeasurementIdempotent() {
+        XCTAssertEqual(
+            MarkerGeometry.compactMinX(currentMinX: 950, currentWidth: 280, compactWidth: 8),
+            1_222
+        )
+        XCTAssertEqual(
+            MarkerGeometry.compactMinX(currentMinX: 1_222, currentWidth: 8, compactWidth: 8),
+            1_222
+        )
+    }
+
+    func testCompactMinXRejectsUnreadableWidths() {
+        XCTAssertNil(MarkerGeometry.compactMinX(currentMinX: 100, currentWidth: nil, compactWidth: 8))
+        XCTAssertNil(MarkerGeometry.compactMinX(currentMinX: 100, currentWidth: -1, compactWidth: 8))
+    }
+
     func testCollapsedWidthUsesFrozenFormulaAndClamp() {
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1440, primaryMinX: 1420), 32.0)
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1512, primaryMinX: 1012), 500.0)
