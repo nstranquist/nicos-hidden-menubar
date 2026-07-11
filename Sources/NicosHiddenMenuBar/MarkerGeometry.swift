@@ -62,6 +62,19 @@ public enum MarkerGeometry {
         return currentMinX + max(0, currentWidth - compactWidth)
     }
 
+    public static func isReadyStatusItemAnchor(
+        _ anchorX: Double?,
+        screenMinX: Double,
+        screenMidX: Double,
+        screenMaxX: Double
+    ) -> Bool {
+        guard let anchorX else { return false }
+        // Menu extras occupy the right half of each display. During launch,
+        // AppKit can briefly report a small placeholder x that is technically
+        // inside the screen but is not the restored menu-extra position yet.
+        return anchorX > screenMidX && anchorX < screenMaxX - 1 && anchorX >= screenMinX
+    }
+
     public static func preferredVisibleFrameMaxX(
         primaryMinX: Double?,
         preferredVisibleFrameMaxX: [Double?],

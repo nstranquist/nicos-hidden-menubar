@@ -18,6 +18,18 @@ final class MarkerGeometryTests: XCTestCase {
         XCTAssertNil(MarkerGeometry.compactMinX(currentMinX: 100, currentWidth: -1, compactWidth: 8))
     }
 
+    func testStatusItemAnchorRejectsLaunchPlaceholderOnAnyDisplayOrigin() {
+        XCTAssertFalse(MarkerGeometry.isReadyStatusItemAnchor(
+            24, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
+        ))
+        XCTAssertTrue(MarkerGeometry.isReadyStatusItemAnchor(
+            1_295, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
+        ))
+        XCTAssertTrue(MarkerGeometry.isReadyStatusItemAnchor(
+            -120, screenMinX: -1_496, screenMidX: -748, screenMaxX: 0
+        ))
+    }
+
     func testCollapsedWidthUsesFrozenFormulaAndClamp() {
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1440, primaryMinX: 1420), 32.0)
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1512, primaryMinX: 1012), 500.0)

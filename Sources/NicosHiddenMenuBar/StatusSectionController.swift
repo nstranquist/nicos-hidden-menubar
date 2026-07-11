@@ -194,9 +194,29 @@ final class StatusSectionController: NSObject {
         openIceBar(on: revealTargetScreen())
     }
 
-    private func openIceBar(on screen: NSScreen?) {
+    private func openIceBar(on screen: NSScreen?, retryCount: Int = 0) {
         guard let screen else { return }
         let anchor = asDouble(toggleItem.button?.window?.frame.midX)
+        let screenMinX = Double(screen.frame.minX)
+        let screenMidX = Double(screen.frame.midX)
+        let screenMaxX = Double(screen.frame.maxX)
+        let anchorIsReady = MarkerGeometry.isReadyStatusItemAnchor(
+            anchor,
+            screenMinX: screenMinX,
+            screenMidX: screenMidX,
+            screenMaxX: screenMaxX
+        )
+        guard anchorIsReady else {
+            if retryCount < 8 {
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.15) { [weak self] in
+                    guard let self else { return }
+                    self.openIceBar(on: self.revealTargetScreen(), retryCount: retryCount + 1)
+                }
+            } else {
+                HiddenMenuBarTelemetry.menuBar.warning("Reveal deferred: status item geometry is not ready")
+            }
+            return
+        }
         HiddenMenuBarTelemetry.menuBar.info("Opening below-menu-bar reveal panel")
         iceBar.toggle(near: anchor, on: screen)
     }
