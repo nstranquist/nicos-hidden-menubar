@@ -95,7 +95,7 @@ All roadmap items below are now in the codebase:
 ### Validation done
 
 - Builds clean (`swift build -c release`).
-- 34 unit tests pass, covering scanner summarize logic, config backward-compat
+- 41 unit tests pass, covering scanner summarize logic, config backward-compat
   decode of the new optional flags, control-section ordering, and item identity.
 - Live behaviors (image capture, Cmd-drag movement) require the user to grant
   permissions and validate on their real bar — intentionally not auto-run.
