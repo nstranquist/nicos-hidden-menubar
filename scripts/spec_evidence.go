@@ -20,21 +20,38 @@ var (
 )
 
 type requirement struct {
-	id            string
-	group         string
-	priority      string
-	state         string
-	title         string
-	statement     string
-	designRef     string
-	acceptanceIDs []string
-	evidence      map[string]bool
+	id         string
+	group      string
+	priority   string
+	state      string
+	title      string
+	statement  string
+	designRef  string
+	acceptance []acceptanceCriterion
+	evidence   []evidenceRecord
+}
+
+type acceptanceCriterion struct {
+	id   string
+	kind string
+}
+
+type evidenceRecord struct {
+	acceptanceID    string
+	kind            string
+	ref             string
+	observedAt      string
+	machine         string
+	osVersion       string
+	displayTopology string
 }
 
 type manifest struct {
 	schemaVersion string
 	initiativeID  string
+	title         string
 	status        string
+	owner         string
 	requirements  []*requirement
 }
 
@@ -69,7 +86,7 @@ func main() {
 
 	acceptanceCount := 0
 	for _, req := range m.requirements {
-		acceptanceCount += len(req.acceptanceIDs)
+		acceptanceCount += len(req.acceptance)
 	}
 	fmt.Printf("docs-check: ok (%d requirements, %d acceptance criteria)\n", len(m.requirements), acceptanceCount)
 }
@@ -83,6 +100,8 @@ func parseManifest(path string) (manifest, []string) {
 
 	var m manifest
 	var current *requirement
+	var currentAcceptance *acceptanceCriterion
+	var currentEvidence *evidenceRecord
 	section := ""
 	lineNumber := 0
 	var problems []string
@@ -103,20 +122,28 @@ func parseManifest(path string) (manifest, []string) {
 		switch {
 		case indent == 0:
 			section = ""
+			currentAcceptance = nil
+			currentEvidence = nil
 			switch key {
 			case "schema_version":
 				m.schemaVersion = value
 			case "initiative_id":
 				m.initiativeID = value
+			case "title":
+				m.title = value
 			case "status":
 				m.status = value
+			case "owner":
+				m.owner = value
 			case "requirements":
 				section = "requirements"
 			}
 		case indent == 2 && strings.HasPrefix(trimmed, "- id:"):
-			current = &requirement{id: value, evidence: make(map[string]bool)}
+			current = &requirement{id: value}
 			m.requirements = append(m.requirements, current)
 			section = "requirement"
+			currentAcceptance = nil
+			currentEvidence = nil
 		case current != nil && indent == 4:
 			switch key {
 			case "group":
@@ -133,13 +160,34 @@ func parseManifest(path string) (manifest, []string) {
 				current.designRef = value
 			case "acceptance":
 				section = "acceptance"
+				currentAcceptance = nil
 			case "evidence":
 				section = "evidence"
+				currentEvidence = nil
 			}
 		case current != nil && indent == 6 && section == "acceptance" && key == "id":
-			current.acceptanceIDs = append(current.acceptanceIDs, value)
-		case current != nil && (indent == 6 || indent == 8) && section == "evidence" && key == "acceptance_id":
-			current.evidence[value] = true
+			current.acceptance = append(current.acceptance, acceptanceCriterion{id: value})
+			currentAcceptance = &current.acceptance[len(current.acceptance)-1]
+		case currentAcceptance != nil && indent == 8 && section == "acceptance" && key == "type":
+			currentAcceptance.kind = value
+		case current != nil && indent == 6 && section == "evidence" && key == "acceptance_id":
+			current.evidence = append(current.evidence, evidenceRecord{acceptanceID: value})
+			currentEvidence = &current.evidence[len(current.evidence)-1]
+		case currentEvidence != nil && indent == 8 && section == "evidence":
+			switch key {
+			case "kind":
+				currentEvidence.kind = value
+			case "ref":
+				currentEvidence.ref = value
+			case "observed_at":
+				currentEvidence.observedAt = value
+			case "machine":
+				currentEvidence.machine = value
+			case "os_version":
+				currentEvidence.osVersion = value
+			case "display_topology":
+				currentEvidence.displayTopology = value
+			}
 		}
 	}
 	if err := scanner.Err(); err != nil {
@@ -155,6 +203,12 @@ func validateManifest(m manifest, root string) []string {
 	}
 	if m.initiativeID == "" {
 		problems = append(problems, "initiative_id is required")
+	}
+	if m.title == "" {
+		problems = append(problems, "title is required")
+	}
+	if m.owner == "" {
+		problems = append(problems, "owner is required")
 	}
 	if !oneOf(m.status, validStates()...) {
 		problems = append(problems, fmt.Sprintf("initiative status %q is invalid", m.status))
@@ -192,10 +246,36 @@ func validateManifest(m manifest, root string) []string {
 				problems = append(problems, fmt.Sprintf("requirement %s design_ref %q does not resolve from docs/", label, req.designRef))
 			}
 		}
-		if len(req.acceptanceIDs) == 0 {
+		if len(req.acceptance) == 0 {
 			problems = append(problems, fmt.Sprintf("requirement %s needs acceptance criteria", label))
 		}
-		for _, acceptanceID := range req.acceptanceIDs {
+
+		evidenceByAcceptance := make(map[string][]evidenceRecord)
+		hasCommit := false
+		hasRelease := false
+		for _, evidence := range req.evidence {
+			evidenceByAcceptance[evidence.acceptanceID] = append(evidenceByAcceptance[evidence.acceptanceID], evidence)
+			if evidence.acceptanceID == "" || evidence.kind == "" || evidence.ref == "" || evidence.observedAt == "" {
+				problems = append(problems, fmt.Sprintf("requirement %s has evidence missing acceptance_id, kind, ref, or observed_at", label))
+			}
+			if evidence.kind == "commit" && evidence.ref != "" {
+				hasCommit = true
+			}
+			if evidence.kind == "release" && evidence.ref != "" {
+				hasRelease = true
+			}
+		}
+		if oneOf(req.state, "implemented", "verified", "shipped") && !hasCommit {
+			problems = append(problems, fmt.Sprintf("requirement %s state %s requires commit evidence", label, req.state))
+		}
+		if req.state == "shipped" && !hasRelease {
+			problems = append(problems, fmt.Sprintf("requirement %s state shipped requires release evidence", label))
+		}
+
+		acceptanceForRequirement := make(map[string]bool)
+		for _, criterion := range req.acceptance {
+			acceptanceID := criterion.id
+			acceptanceForRequirement[acceptanceID] = true
 			if !strings.HasPrefix(acceptanceID, req.id+"-") {
 				problems = append(problems, fmt.Sprintf("acceptance id %s must begin with %s-", acceptanceID, req.id))
 			}
@@ -203,12 +283,30 @@ func validateManifest(m manifest, root string) []string {
 				problems = append(problems, fmt.Sprintf("acceptance id %s is duplicated", acceptanceID))
 			}
 			seenAcceptance[acceptanceID] = true
-			if oneOf(req.state, "verified", "shipped") && !req.evidence[acceptanceID] {
+			records := evidenceByAcceptance[acceptanceID]
+			if oneOf(req.state, "verified", "shipped") && len(records) == 0 {
 				problems = append(problems, fmt.Sprintf("requirement %s lacks evidence for %s", label, acceptanceID))
+			}
+			if oneOf(req.state, "verified", "shipped") && criterion.kind == "hardware" && !hasHardwareMetadata(records) {
+				problems = append(problems, fmt.Sprintf("requirement %s hardware evidence for %s requires machine, os_version, display_topology, and observed_at", label, acceptanceID))
+			}
+		}
+		for acceptanceID := range evidenceByAcceptance {
+			if !acceptanceForRequirement[acceptanceID] {
+				problems = append(problems, fmt.Sprintf("requirement %s has evidence for unknown acceptance id %s", label, acceptanceID))
 			}
 		}
 	}
 	return problems
+}
+
+func hasHardwareMetadata(records []evidenceRecord) bool {
+	for _, record := range records {
+		if record.kind == "hardware" && record.ref != "" && record.observedAt != "" && record.machine != "" && record.osVersion != "" && record.displayTopology != "" {
+			return true
+		}
+	}
+	return false
 }
 
 func validateMarkdownLinks(docsRoot, repoRoot string) []string {

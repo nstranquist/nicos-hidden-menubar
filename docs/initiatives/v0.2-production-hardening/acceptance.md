@@ -28,11 +28,17 @@ v0.2 requirements.
 Every evidence entry records:
 
 - requirement and acceptance IDs;
-- evidence kind: `test`, `command`, `hardware`, `artifact`, or `review`;
+- evidence kind such as `test`, `command`, `hardware`, `review`, `commit`, or
+  `release`;
 - immutable reference: commit, CI run, release checksum, or checked-in receipt;
 - observation date;
-- environment for hardware/performance claims;
+- `machine`, `os_version`, and `display_topology` for hardware claims;
 - exact success signal and any residual warning.
+
+`implemented` requires `commit` evidence, `verified` requires evidence for every
+acceptance ID, and `shipped` additionally requires `release` evidence naming the
+installed or distributed artifact. The validator rejects evidence attached to
+an unknown acceptance ID.
 
 ## Graduation table
 
