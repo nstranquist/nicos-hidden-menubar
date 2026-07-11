@@ -95,7 +95,7 @@ All roadmap items below are now in the codebase:
 ### Validation done
 
 - Builds clean (`swift build -c release`).
-- 41 unit tests pass, covering scanner summarize logic, config backward-compat
+- 42 unit tests pass, covering scanner summarize logic, config backward-compat
   decode of the new optional flags, control-section ordering, and item identity.
 - Live behaviors (image capture, Cmd-drag movement) require the user to grant
   permissions and validate on their real bar — intentionally not auto-run.
@@ -114,3 +114,6 @@ All roadmap items below are now in the codebase:
   and refreshes when macOS reports a topology or resolution change.
 - Screen observation is notification-driven. There is no periodic active-screen
   timer, and captured images are released when the panel closes.
+- When live verification proves that a notch collapse hid zero items, the app
+  releases the ineffective spacer and keeps the below-menu-bar reveal active;
+  it does not leave a large blank region in exchange for no hiding benefit.
