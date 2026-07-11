@@ -9,10 +9,10 @@ Our app is a faithful **Hidden Bar clone**: it owns three of its own
 left-neighbors past the screen's right edge. Ice is a **menu bar manager**: it
 sees *every* app's menu bar items through the private window server and physically
 *moves* them, so it can truly hide/arrange any item and show them in a separate
-popover. The clone breaks on notched displays because the spacer pushes items
-*under the notch* rather than off-screen. We closed the biggest part of that gap
-(ground-truth visibility + collapse verification); the rest (item movement,
-IceBar) is documented as future work.
+popover. Inline spacer reveal is inherently unreliable on notched displays
+because the usable menu bar is split. The app now keeps inline reveal available
+for regular displays and provides an automatically selected, below-menu-bar
+panel for notched displays.
 
 ## Mechanism, side by side
 
@@ -99,3 +99,18 @@ All roadmap items below are now in the codebase:
   decode of the new optional flags, control-section ordering, and item identity.
 - Live behaviors (image capture, Cmd-drag movement) require the user to grant
   permissions and validate on their real bar — intentionally not auto-run.
+
+## Display and notch hardening (2026-07-11)
+
+- Collapse geometry is idempotent: refreshes normalize the primary divider back
+  to its compact coordinate before calculating spacer width, so a screen change
+  cannot repeatedly inflate an already-expanded spacer.
+- The collapsed divider is visually hidden instead of being centered in the
+  inflated blank region.
+- Reveal mode is `automatic`, `inline`, or `belowMenuBar`; legacy
+  `iceBarEnabled` configuration remains readable. Automatic chooses the panel
+  on a notched display.
+- The panel wraps items, clamps both dimensions to the status item's display,
+  and refreshes when macOS reports a topology or resolution change.
+- Screen observation is notification-driven. There is no periodic active-screen
+  timer, and captured images are released when the panel closes.

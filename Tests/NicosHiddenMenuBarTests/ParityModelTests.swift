@@ -24,6 +24,7 @@ final class ParityModelTests: XCTestCase {
         var data = try JSONEncoder().encode(legacy)
         var dict = try XCTUnwrap(JSONSerialization.jsonObject(with: data) as? [String: Any])
         dict.removeValue(forKey: "iceBarEnabled")
+        dict.removeValue(forKey: "revealMode")
         dict.removeValue(forKey: "enableExperimentalItemMovement")
         dict.removeValue(forKey: "revealOnHover")
         data = try JSONSerialization.data(withJSONObject: dict)
@@ -32,6 +33,7 @@ final class ParityModelTests: XCTestCase {
         XCTAssertFalse(decoded.isIceBarEnabled)
         XCTAssertFalse(decoded.isExperimentalItemMovementEnabled)
         XCTAssertFalse(decoded.isRevealOnHoverEnabled)
+        XCTAssertEqual(decoded.configuredRevealMode, .automatic)
     }
 
     func testIceBarHiddenCandidatesFilterLeftOfToggleAndExcludeImmovable() {
@@ -70,5 +72,38 @@ final class ParityModelTests: XCTestCase {
         let decoded = try JSONDecoder().decode(HiddenBarConfig.self, from: data)
         XCTAssertTrue(decoded.isIceBarEnabled)
         XCTAssertTrue(decoded.isExperimentalItemMovementEnabled)
+    }
+
+    func testRevealModeMigratesLegacyFlagAndResolvesNotches() throws {
+        var config = HiddenBarConfig.default
+        config.iceBarEnabled = true
+        XCTAssertEqual(config.configuredRevealMode, .belowMenuBar)
+
+        config.iceBarEnabled = nil
+        XCTAssertEqual(config.resolvedRevealMode(hasNotch: false), .inline)
+        XCTAssertEqual(config.resolvedRevealMode(hasNotch: true), .belowMenuBar)
+
+        config.revealMode = .inline
+        XCTAssertEqual(config.resolvedRevealMode(hasNotch: true), .inline)
+
+        config.revealMode = .belowMenuBar
+        XCTAssertEqual(config.resolvedRevealMode(hasNotch: false), .belowMenuBar)
+    }
+
+    func testIceBarLayoutClampsToActiveScreenAndWrapsItems() {
+        let small = IceBarLayout.calculate(
+            itemCount: 20,
+            visibleFrame: CGRect(x: 1_500, y: 0, width: 500, height: 800)
+        )
+        XCTAssertLessThanOrEqual(small.width, 488)
+        XCTAssertGreaterThan(small.height, 54)
+        XCTAssertGreaterThan(small.columnCount, 1)
+
+        let compact = IceBarLayout.calculate(
+            itemCount: 3,
+            visibleFrame: CGRect(x: 0, y: 0, width: 1_496, height: 900)
+        )
+        XCTAssertEqual(compact.columnCount, 3)
+        XCTAssertEqual(compact.height, 54)
     }
 }

@@ -48,8 +48,19 @@ struct PreferencesView: View {
             }
 
             Section("Hidden Items") {
-                Toggle("Reveal hidden items in a floating panel", isOn: optionalBinding(\.iceBarEnabled))
-                Text("Shows hidden items in a floating panel instead of reflowing them into the menu bar — the reliable fix on notched displays.")
+                Picker("Reveal hidden items", selection: Binding(
+                    get: { preferencesStore.config.configuredRevealMode },
+                    set: { newValue in
+                        _ = preferencesStore.updateConfig { current in
+                            current.revealMode = newValue
+                        }
+                    }
+                )) {
+                    ForEach(HiddenItemRevealMode.allCases, id: \.self) { mode in
+                        Text(mode.displayName).tag(mode)
+                    }
+                }
+                Text("Automatic uses the compact menu bar on regular displays and expands below the menu bar on notched displays.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
                     .fixedSize(horizontal: false, vertical: true)

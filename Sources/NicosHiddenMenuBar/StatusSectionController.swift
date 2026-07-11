@@ -80,6 +80,23 @@ final class StatusSectionController: NSObject {
         }
     }
 
+    /// User-facing reveal action. Automatic mode keeps the classic compact
+    /// inline behavior on regular displays and uses the below-menu-bar panel
+    /// where a notch splits the available menu-bar space.
+    func toggleReveal() {
+        let screen = revealTargetScreen()
+        if shouldRevealBelowMenuBar(on: screen) {
+            guard Date().timeIntervalSince(lastToggleAt) >= 0.2 else {
+                HiddenMenuBarTelemetry.menuBar.debug("Reveal ignored by debounce")
+                return
+            }
+            lastToggleAt = Date()
+            openIceBar(on: screen)
+        } else {
+            toggle()
+        }
+    }
+
     func expand() {
         autoCollapseWorkItem?.cancel()
         toggleState = .expanded
@@ -174,10 +191,13 @@ final class StatusSectionController: NSObject {
     /// Open the IceBar popover of hidden items. The real notch fix: hidden items
     /// are shown in a floating panel rather than reflowed into the menu bar.
     func openIceBar() {
-        let screen = toggleItem.button?.window?.screen ?? activeMouseScreen() ?? NSScreen.main
+        openIceBar(on: revealTargetScreen())
+    }
+
+    private func openIceBar(on screen: NSScreen?) {
         guard let screen else { return }
         let anchor = asDouble(toggleItem.button?.window?.frame.midX)
-        HiddenMenuBarTelemetry.menuBar.info("Opening IceBar popover")
+        HiddenMenuBarTelemetry.menuBar.info("Opening below-menu-bar reveal panel")
         iceBar.toggle(near: anchor, on: screen)
     }
 
@@ -220,6 +240,13 @@ final class StatusSectionController: NSObject {
             } else {
                 preferencesStore.recordGeometryReadable(true)
             }
+        }
+        let targetScreen = revealTargetScreen()
+        if let targetScreen {
+            iceBar.refreshIfVisible(
+                near: asDouble(toggleItem.button?.window?.frame.midX),
+                on: targetScreen
+            )
         }
         scheduleGeometryRefresh()
     }
@@ -272,9 +299,9 @@ final class StatusSectionController: NSObject {
             )
         ))
         contextMenu.addItem(.separator())
-        contextMenu.addItem(NSMenuItem(title: "Expand", action: #selector(menuExpand), keyEquivalent: "e"))
+        contextMenu.addItem(NSMenuItem(title: "Expand Inline", action: #selector(menuExpand), keyEquivalent: "e"))
         contextMenu.addItem(NSMenuItem(title: "Collapse", action: #selector(menuCollapse), keyEquivalent: "c"))
-        contextMenu.addItem(NSMenuItem(title: "Show Hidden Items (IceBar)", action: #selector(menuOpenIceBar), keyEquivalent: "i"))
+        contextMenu.addItem(NSMenuItem(title: "Show Below Menu Bar", action: #selector(menuOpenIceBar), keyEquivalent: "i"))
         contextMenu.addItem(.separator())
         contextMenu.addItem(NSMenuItem(title: "Open Settings", action: #selector(menuOpenSettings), keyEquivalent: ","))
         contextMenu.addItem(NSMenuItem(title: "Open Diagnostics", action: #selector(menuOpenDiagnostics), keyEquivalent: "d"))
@@ -353,10 +380,13 @@ final class StatusSectionController: NSObject {
         guard let button = toggleItem.button else {
             return
         }
-        let symbolName = (toggleState == .collapsed) ? "chevron.right" : "chevron.left"
+        let revealsBelow = revealAppearanceUsesBelowMenuBar
+        let symbolName = revealsBelow ? "chevron.down" : ((toggleState == .collapsed) ? "chevron.right" : "chevron.left")
         button.image = NSImage(systemSymbolName: symbolName, accessibilityDescription: "Hidden Bar Toggle")
         button.imagePosition = .imageOnly
-        button.toolTip = (toggleState == .collapsed) ? "Expand hidden menu items" : "Collapse menu items"
+        button.toolTip = revealsBelow
+            ? "Show hidden items below the menu bar"
+            : ((toggleState == .collapsed) ? "Expand hidden menu items" : "Collapse menu items")
     }
 
     private func updateMarkerTitles() {
@@ -513,6 +543,33 @@ final class StatusSectionController: NSObject {
         return NSScreen.screens.first(where: { NSMouseInRect(mouseLocation, $0.frame, false) }) ?? NSScreen.main
     }
 
+    private func revealTargetScreen() -> NSScreen? {
+        // The status item window is authoritative when macOS has placed the
+        // menu extra on a display. Mouse/main are only startup fallbacks.
+        toggleItem.button?.window?.screen ?? activeMouseScreen() ?? NSScreen.main
+    }
+
+    private func shouldRevealBelowMenuBar(on screen: NSScreen?) -> Bool {
+        let hasNotch: Bool
+        if let screen {
+            hasNotch = scanScreen(screen, toggleMinX: asDouble(toggleItem.button?.window?.frame.minX))?.hasNotch ?? false
+        } else {
+            hasNotch = false
+        }
+        return preferencesStore.config.resolvedRevealMode(hasNotch: hasNotch) == .belowMenuBar
+    }
+
+    private var revealAppearanceUsesBelowMenuBar: Bool {
+        switch preferencesStore.config.configuredRevealMode {
+        case .belowMenuBar:
+            return true
+        case .inline:
+            return false
+        case .automatic:
+            return lastScan?.hasNotch ?? false
+        }
+    }
+
     private func shouldPauseCollapseForInteraction() -> Bool {
         if NSEvent.pressedMouseButtons != 0 {
             return true
@@ -558,7 +615,7 @@ final class StatusSectionController: NSObject {
 
     @objc private func handleToggleButton(_ sender: NSStatusBarButton?) {
         guard let event = NSApp.currentEvent else {
-            toggle()
+            toggleReveal()
             return
         }
 
@@ -573,7 +630,7 @@ final class StatusSectionController: NSObject {
             return
         }
 
-        toggle()
+        toggleReveal()
     }
 
     @objc private func menuExpand() {

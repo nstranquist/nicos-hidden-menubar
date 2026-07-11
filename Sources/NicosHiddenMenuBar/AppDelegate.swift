@@ -202,13 +202,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         hotkeyController = HotkeyController(
             preferencesStore: preferencesStore,
             onTrigger: { [weak self] in
-                guard let self else { return }
-                // Reveal via IceBar popover when enabled, else classic toggle.
-                if self.preferencesStore.config.isIceBarEnabled {
-                    self.statusController?.openIceBar()
-                } else {
-                    self.statusController?.toggle()
-                }
+                self?.statusController?.toggleReveal()
             }
         )
         screenObserver = ScreenObserver { [weak self] in
@@ -251,7 +245,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         switch host {
         case "toggle":
-            statusController?.toggle()
+            statusController?.toggleReveal()
         case "expand":
             statusController?.expand()
         case "collapse":

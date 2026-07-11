@@ -16,7 +16,8 @@ MacBooks.
 - Auto-collapse profiles for focus, presenting, and recording
 - Global keyboard shortcut
 - Searchable hidden-items panel with text fallback
-- Multi-display and notch-aware geometry diagnostics
+- Automatic below-menu-bar reveal on notched displays
+- Per-display panel sizing with live display-change handling
 - Optional import of existing Hidden Bar preferences
 - Optional experimental item movement behind an explicit safety toggle
 - JSON configuration and diagnostics that stay on your Mac
@@ -52,7 +53,8 @@ make uninstall
 3. Keep frequently used items to the right of the primary separator.
 4. Put items you want to collapse to the left of the primary separator.
 5. Enable the optional always-hidden region if you want a second boundary.
-6. Click the chevron to verify that the intended items collapse and return.
+6. Choose **Automatic**, **In the menu bar**, or **Below the menu bar** in
+   Settings, then click the chevron to verify the reveal behavior.
 
 Option-click the chevron to temporarily reveal the marker controls. Right-click
 it to open Settings, Diagnostics, the hidden-items panel, or Quit.
@@ -113,10 +115,16 @@ Diagnostics. Notch-aware discovery reads menu-item window frames through private
 CoreGraphics window-server symbols; this makes the app appropriate for direct,
 open-source distribution rather than the sandboxed Mac App Store.
 
+Display topology and resolution changes are handled through macOS notifications,
+without a background polling loop. The reveal panel is sized and clamped to the
+display containing the status item, then releases captured icon images when it
+closes.
+
 Experimental movement synthesizes the same Command-drag interaction a user can
 perform manually. It remains off by default because third-party menu items can
-respond at different speeds. The normal marker-and-spacer path is the safe
-default.
+respond at different speeds. Automatic reveal keeps the normal marker-and-spacer
+path on regular displays and uses the below-menu-bar panel when a notch is
+detected.
 
 No configuration, diagnostics, screenshots, or telemetry leave the machine.
 
@@ -126,4 +134,3 @@ Nicos Hidden Bar is released under the GNU General Public License v3.0. Parts of
 its menu-bar discovery and movement design are adapted from
 [Ice](https://github.com/jordanbaird/Ice), also GPL-3.0. See [NOTICE](NOTICE) for
 attribution and [LICENSE](LICENSE) for the complete terms.
-

@@ -53,6 +53,9 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     // Parity additions (optional so older persisted configs still decode).
     /// Show the IceBar popover of hidden items instead of inline reveal.
     var iceBarEnabled: Bool? = nil
+    /// Preferred reveal surface. Optional so existing schema-v1 files decode;
+    /// the legacy `iceBarEnabled` flag remains the migration fallback.
+    var revealMode: HiddenItemRevealMode? = nil
     /// EXPERIMENTAL: allow synthesized Cmd-drag to truly move/hide arbitrary
     /// items. Off by default — manipulates the real menu bar and needs live
     /// validation. See MenuBarItemMover.
@@ -64,6 +67,25 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     var isExperimentalItemMovementEnabled: Bool { enableExperimentalItemMovement ?? false }
     var isRevealOnHoverEnabled: Bool { revealOnHover ?? false }
     var isOnboardingCompleted: Bool { onboardingCompleted ?? false }
+
+    var configuredRevealMode: HiddenItemRevealMode {
+        if let revealMode {
+            return revealMode
+        }
+        if let iceBarEnabled {
+            return iceBarEnabled ? .belowMenuBar : .inline
+        }
+        return .automatic
+    }
+
+    func resolvedRevealMode(hasNotch: Bool) -> HiddenItemRevealMode {
+        switch configuredRevealMode {
+        case .automatic:
+            return hasNotch ? .belowMenuBar : .inline
+        case .inline, .belowMenuBar:
+            return configuredRevealMode
+        }
+    }
 
     static let `default` = HiddenBarConfig(
         schemaVersion: currentSchemaVersion,
@@ -133,6 +155,20 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
 
     var activeProfileSettings: HiddenBarProfile {
         profiles[activeProfile] ?? profiles["default"] ?? HiddenBarProfile(autoCollapseEnabled: true, autoCollapseSeconds: 10, useRegularActivationOnExpand: false)
+    }
+}
+
+enum HiddenItemRevealMode: String, Codable, CaseIterable, Equatable, Sendable {
+    case automatic
+    case inline
+    case belowMenuBar
+
+    var displayName: String {
+        switch self {
+        case .automatic: return "Automatic"
+        case .inline: return "In the menu bar"
+        case .belowMenuBar: return "Below the menu bar"
+        }
     }
 }
 
