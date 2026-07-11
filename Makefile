@@ -1,4 +1,4 @@
-.PHONY: build run install uninstall clean headless-smoke
+.PHONY: build run install uninstall clean docs-check headless-smoke
 
 APP_NAME := Nicos Hidden Bar
 BUNDLE_NAME := NicosHiddenMenuBar
@@ -44,6 +44,11 @@ uninstall:
 clean:
 	swift package clean
 	@rm -rf .build
+
+docs-check:
+	@go run ./scripts/spec_evidence.go \
+		-repo-root . \
+		-requirements docs/initiatives/v0.2-production-hardening/requirements.yaml
 
 # Headless launch-verify: boot + open preferences off-screen, assert no foreground.
 headless-smoke:

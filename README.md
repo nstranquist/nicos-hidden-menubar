@@ -103,6 +103,10 @@ make headless-smoke
 make run
 ```
 
+Project architecture, decisions, active requirements, quality matrices, and
+release evidence are indexed in [`docs/INDEX.md`](docs/INDEX.md).
+Validate their links and evidence contract with `make docs-check`.
+
 The headless smoke opens and captures the real settings window off-screen while
 asserting that the app never steals focus. Reports and screenshots are written
 under `.local/headless-smoke/` and are ignored by Git.

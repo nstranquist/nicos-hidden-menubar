@@ -1,0 +1,178 @@
+schema_version: 1
+initiative_id: nhm-v0.2-production-hardening
+title: Nicos Hidden Bar v0.2 Production Hardening
+status: proposed
+owner: "@nstranquist"
+requirements:
+  - id: ARC-001
+    group: architecture
+    priority: must
+    state: proposed
+    title: Extract a testable state machine and services
+    statement: The central controller delegates pure transitions and side effects to bounded owners.
+    design_ref: architecture/overview.md#target-boundaries
+    acceptance:
+      - id: ARC-001-A
+        type: automated
+        statement: State transitions run without AppKit or a window server.
+      - id: ARC-001-B
+        type: structural
+        statement: Activation, capture, placement, and diagnostics have separate owners.
+    evidence: []
+    risks: [migration-regression]
+
+  - id: ITEM-001
+    group: identity
+    priority: must
+    state: proposed
+    title: Versioned stable item identity
+    statement: Repeated and image-only items resolve to distinct durable identities.
+    design_ref: decisions/0003-stable-item-identity.md
+    acceptance:
+      - id: ITEM-001-A
+        type: automated
+        statement: Fixtures distinguish supported Control Center modules.
+      - id: ITEM-001-B
+        type: migration
+        statement: Existing bundle-title policy migrates without silent loss.
+    evidence: []
+    risks: [os-metadata-drift, ambiguous-legacy-identity]
+
+  - id: ACT-001
+    group: activation
+    priority: must
+    state: proposed
+    title: Activate an item from the reveal panel
+    statement: Selecting a panel item opens its menu or returns an explicit actionable outcome.
+    design_ref: architecture/item-lifecycle.md#target-activation-contract
+    acceptance:
+      - id: ACT-001-A
+        type: automated
+        statement: Controller routes selection through ItemActivationService.
+      - id: ACT-001-B
+        type: hardware
+        statement: One third-party item and one supported Control Center item activate on a notched Mac.
+      - id: ACT-001-C
+        type: degraded
+        statement: Missing permission produces an explicit repair action.
+    evidence: []
+    risks: [accessibility-permission, private-api-drift]
+
+  - id: MOVE-001
+    group: placement
+    priority: must
+    state: proposed
+    title: Bounded item movement and recovery
+    statement: Movement waits for observed frames, retries within a fixed budget, and restores state on failure.
+    design_ref: decisions/0002-item-manager-replaces-spacer.md
+    acceptance:
+      - id: MOVE-001-A
+        type: automated
+        statement: Retry, timeout, cancellation, and rollback transitions are deterministic.
+      - id: MOVE-001-B
+        type: hardware
+        statement: Supported third-party owners pass repeated move-and-restore smoke.
+    evidence: []
+    risks: [owner-latency, user-layout-mutation]
+
+  - id: DSP-001
+    group: displays
+    priority: must
+    state: proposed
+    title: Per-display placement ownership
+    statement: Each display topology resolves independent live geometry and panel placement.
+    design_ref: decisions/0002-item-manager-replaces-spacer.md
+    acceptance:
+      - id: DSP-001-A
+        type: automated
+        statement: Offset, scaled, attached, removed, and resized display transitions are covered.
+      - id: DSP-001-B
+        type: hardware
+        statement: Built-in notch plus an external display pass the compatibility matrix.
+    evidence: []
+    risks: [status-item-replica-behavior]
+
+  - id: CAP-001
+    group: capture
+    priority: should
+    state: proposed
+    title: Incremental bounded icon capture
+    statement: The panel opens before capture completes and fills icons incrementally from a bounded cache.
+    design_ref: decisions/0004-panel-capture-and-cache.md
+    acceptance:
+      - id: CAP-001-A
+        type: automated
+        statement: Cache invalidation and byte/count limits are tested.
+      - id: CAP-001-B
+        type: performance
+        statement: Warm and cold reveal meet documented latency budgets.
+    evidence: []
+    risks: [screen-recording-permission, capture-latency]
+
+  - id: TEST-001
+    group: quality
+    priority: must
+    state: proposed
+    title: Integration and lifecycle coverage
+    statement: Automated coverage includes controller effects, panel lifecycle, permissions, and display changes.
+    design_ref: quality/test-matrix.md
+    acceptance:
+      - id: TEST-001-A
+        type: automated
+        statement: Every must requirement has at least one automated acceptance test.
+      - id: TEST-001-B
+        type: ci
+        statement: Required tests run on a clean macOS CI host.
+    evidence: []
+    risks: [hardware-only-coverage]
+
+  - id: PERF-001
+    group: performance
+    priority: must
+    state: proposed
+    title: Enforced resource budgets
+    statement: Idle CPU, physical memory, reveal latency, and capture cache have measurable gates.
+    design_ref: quality/performance-budgets.md
+    acceptance:
+      - id: PERF-001-A
+        type: automated
+        statement: Budget checks produce machine-readable pass or fail output.
+      - id: PERF-001-B
+        type: hardware
+        statement: Release candidate meets budgets on the baseline M1 MacBook Pro.
+    evidence: []
+    risks: [measurement-variance]
+
+  - id: REL-001
+    group: release
+    priority: must
+    state: proposed
+    title: Reproducible signed release pipeline
+    statement: CI validates source and produces versioned release evidence; distribution uses stable signing and notarization.
+    design_ref: releases/release-checklist.md
+    acceptance:
+      - id: REL-001-A
+        type: ci
+        statement: Tests, formatting, warnings, docs validation, and forbidden-term audit gate pull requests.
+      - id: REL-001-B
+        type: release
+        statement: Signed, notarized, stapled artifact passes clean-machine install and permission smoke.
+    evidence: []
+    risks: [developer-id-availability]
+
+  - id: DOC-001
+    group: documentation
+    priority: should
+    state: proposed
+    title: Traceable product documentation
+    statement: Product promise, decisions, requirements, tests, evidence, and releases remain linked and current.
+    design_ref: INDEX.md#lifecycle-rules
+    acceptance:
+      - id: DOC-001-A
+        type: automated
+        statement: Requirement schema and relative links validate in CI.
+      - id: DOC-001-B
+        type: review
+        statement: Frozen historical contracts are not rewritten to hide deviations.
+    evidence: []
+    risks: [documentation-drift]
