@@ -1,0 +1,36 @@
+{
+  "schema_version": 1,
+  "requirement_id": "ARC-001",
+  "observed_at": "2026-07-11",
+  "implementation": {
+    "commit": "722da6c201e940d1a9acd0841422a9af925f7a03",
+    "scope": [
+      "pure state and input model",
+      "typed transition effects",
+      "AppKit controller adapter",
+      "service boundary protocols"
+    ]
+  },
+  "checks": [
+    {
+      "acceptance_id": "ARC-001-A",
+      "command": "swift test",
+      "status": "passed",
+      "result": "47 tests passed, including five testARC001 state-machine tests"
+    },
+    {
+      "acceptance_id": "ARC-001-A",
+      "command": "make headless-smoke",
+      "status": "passed",
+      "result": "launch, settings window, screenshot, and no-foreground assertions passed",
+      "source_report": ".local/headless-smoke/20260711-184731/report.json"
+    }
+  ],
+  "incomplete_acceptance": [
+    {
+      "acceptance_id": "ARC-001-B",
+      "status": "pending",
+      "reason": "Protocols are defined, but concrete activation, capture, placement, and diagnostics owners are not all extracted and injected."
+    }
+  ]
+}

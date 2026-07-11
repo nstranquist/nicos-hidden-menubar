@@ -7,6 +7,11 @@ No slice starts merely because it appears here. Accept the relevant requirements
 and proposed ADRs before implementation. `ARC-001` and `TEST-001` were accepted
 on 2026-07-11 for Slice 1; later slices remain unaccepted.
 
+The first Slice 1 boundary is implemented in `722da6c`: the pure state machine,
+typed effects, controller adapter, and service protocols exist. Concrete
+service-owner extraction and broader controller integration remain before the
+slice can be verified.
+
 ## Slice 0: Documentation and baseline
 
 - Establish the documentation index, architecture truth, ADRs, requirement

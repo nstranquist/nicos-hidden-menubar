@@ -44,7 +44,7 @@ an unknown acceptance ID.
 
 | Requirement | State | Blocking evidence |
 | --- | --- | --- |
-| ARC-001 | accepted | state-machine and structural coverage |
+| ARC-001 | implemented | pure reducer is covered; concrete service owners remain |
 | ITEM-001 | proposed | identity fixtures and migration |
 | ACT-001 | proposed | direct activation tests and hardware smoke |
 | MOVE-001 | proposed | retries, rollback, and owner matrix |
@@ -61,3 +61,13 @@ an unknown acceptance ID.
 - external-display hardware is not currently attached;
 - Accessibility and Screen Recording evidence require explicit user grants;
 - private API compatibility cannot be proven solely by unit tests.
+
+## Slice 1 evidence
+
+- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 47 passing
+  package tests.
+- Runtime parity: the optimized app passed the headless launch, settings-window,
+  and no-foreground smoke.
+- `ARC-001-B` remains pending: service protocols exist, but the v0.1 concrete
+  discovery, placement, activation, capture, and diagnostics owners have not
+  all been extracted and injected.
