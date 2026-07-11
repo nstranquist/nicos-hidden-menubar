@@ -11,7 +11,8 @@ inline reveal or a below-menu-bar panel. It does not use a network service.
 | Component | Responsibility | Current owner |
 | --- | --- | --- |
 | Application lifecycle | windows, URL commands, login item, hotkey | `AppDelegate` |
-| Section state | toggle, collapse, repair, profiles, menus | `StatusSectionController` |
+| Section state | pure expanded/collapsed transitions and typed effects | `MenuBarStateMachine` |
+| AppKit section adapter | geometry inputs, status items, menus, effect execution | `StatusSectionController` |
 | Geometry | pure ordering, width, notch fallback predicates | `MarkerGeometry` |
 | Discovery | enumerate real menu-item windows and frames | `MenuBarItemScanner` + `MenuBarBridging` |
 | Item identity | owner, title, display label | `MenuBarItemInfo` |
@@ -19,6 +20,7 @@ inline reveal or a below-menu-bar panel. It does not use a network service.
 | Reveal panel | layout, search, capture lifecycle | `IceBarPanel` + `IceBarModel` |
 | Image capture | ScreenCaptureKit snapshots | `MenuBarItemImageCapture` |
 | Configuration | validation and atomic JSON persistence | `PreferencesStore` |
+| Service contracts | discovery, placement, activation, capture, diagnostics | `MenuBarServiceBoundaries` protocols |
 | Diagnostics | local snapshots and permission/geometry health | `PreferencesStore` + views |
 | Display changes | debounced macOS notifications | `ScreenObserver` |
 
@@ -29,6 +31,9 @@ click / hotkey / URL
         |
         v
 StatusSectionController
+        |
+        v
+MenuBarStateMachine -> typed effects
   |          |             |
   v          v             v
 geometry   scanner      reveal panel
@@ -54,6 +59,11 @@ The spacer is a compatibility mechanism, not a reliable notch architecture. If
 live verification proves it hid nothing, the app releases it rather than leave
 a large blank region. True deterministic placement and activation require the
 proposed item-manager architecture in ADR-0002.
+
+The state reducer and service protocols now exist, but discovery, placement,
+activation, capture, and diagnostics still use their v0.1 concrete owners. The
+protocols are migration seams, not evidence that those services are already
+fully extracted.
 
 ## Target boundaries
 

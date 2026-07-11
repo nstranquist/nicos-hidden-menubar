@@ -4,7 +4,8 @@
 
 The v0.1 suite covers configuration, migration/import, geometry predicates,
 scanner summarization, bridge behavior, first-party title rules, item candidate
-filtering, layout calculations, and exit-code shapes.
+filtering, layout calculations, exit-code shapes, and ARC-001 pure section-state
+transitions.
 
 ## Required v0.2 coverage
 

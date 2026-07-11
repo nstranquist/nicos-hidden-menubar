@@ -7,11 +7,6 @@ import SwiftUI
 final class StatusSectionController: NSObject {
     private static let deferredCollapseRetryDelay: TimeInterval = 0.75
 
-    private enum ToggleState {
-        case expanded
-        case collapsed
-    }
-
     private let preferencesStore: PreferencesStore
     private let profileStore: ProfileStore
     private let openSettings: () -> Void
@@ -23,7 +18,8 @@ final class StatusSectionController: NSObject {
     private let secondarySeparatorItem: NSStatusItem
     private let contextMenu = NSMenu()
 
-    private var toggleState: ToggleState = .expanded
+    private var stateMachine = MenuBarStateMachine()
+    private var toggleState: MenuBarSectionMode { stateMachine.state.mode }
     private var lastToggleAt = Date.distantPast
     private var lastScan: MenuBarItemScanner.Scan?
     private lazy var iceBar = IceBarPanel { [weak self] windowID in
@@ -73,12 +69,7 @@ final class StatusSectionController: NSObject {
         }
         lastToggleAt = Date()
         HiddenMenuBarTelemetry.menuBar.info("Toggle requested")
-        switch toggleState {
-        case .expanded:
-            _ = collapse()
-        case .collapsed:
-            expand()
-        }
+        perform(stateMachine.handle(.toggleRequested))
     }
 
     /// User-facing reveal action. Automatic mode keeps the classic compact
@@ -99,8 +90,11 @@ final class StatusSectionController: NSObject {
     }
 
     func expand() {
+        perform(stateMachine.handle(.expandRequested))
+    }
+
+    private func applyExpandedState() {
         autoCollapseWorkItem?.cancel()
-        toggleState = .expanded
         HiddenMenuBarTelemetry.menuBar.info("Expanding menu bar section")
         applyExpandedLengths()
         updateToggleAppearance()
@@ -130,7 +124,7 @@ final class StatusSectionController: NSObject {
         preferencesStore.recordMarkerOrder(valid: isValid)
         guard isValid else {
             HiddenMenuBarTelemetry.menuBar.warning("Collapse rejected by invalid marker order")
-            safeRepairPath()
+            perform(stateMachine.handle(.collapseRejected(.invalidMarkerOrder)))
             return false
         }
 
@@ -149,34 +143,44 @@ final class StatusSectionController: NSObject {
         ) else {
             HiddenMenuBarTelemetry.menuBar.warning("Collapse rejected by unreadable geometry")
             preferencesStore.recordGeometryReadable(false, reason: "geometry_unreadable")
-            safeRepairPath()
+            perform(stateMachine.handle(.collapseRejected(.unreadableGeometry)))
             return false
         }
 
         preferencesStore.recordGeometryReadable(true)
-        autoCollapseWorkItem?.cancel()
-        toggleState = .collapsed
         let targetScreen = toggleItem.button?.window?.screen ?? activeMouseScreen()
         let useCompactFallback = shouldUseCompactFallback(
             on: targetScreen,
             geometrySnapshot: geometrySnapshot
         )
-        if useCompactFallback {
+        let plan = MenuBarCollapsePlan(
+            primaryLength: useCompactFallback ? Double(primaryExpandedLength(for: config)) : collapseWidth,
+            secondaryLength: Double(secondaryExpandedLength(for: config)),
+            useCompactFallback: useCompactFallback,
+            toggleMinX: toggleX,
+            targetDisplayID: targetScreen?.displayID
+        )
+        perform(stateMachine.handle(.collapseSucceeded(plan)))
+        return true
+    }
+
+    private func applyCollapsedState(_ plan: MenuBarCollapsePlan) {
+        autoCollapseWorkItem?.cancel()
+        if plan.useCompactFallback {
             HiddenMenuBarTelemetry.menuBar.info("Keeping failed notch spacer compact")
-            primarySeparatorItem.length = primaryExpandedLength(for: config)
         } else {
             HiddenMenuBarTelemetry.menuBar.info("Collapsing menu bar section")
-            primarySeparatorItem.length = CGFloat(collapseWidth)
         }
-        secondarySeparatorItem.length = secondaryExpandedLength(for: config)
+        primarySeparatorItem.length = CGFloat(plan.primaryLength)
+        secondarySeparatorItem.length = CGFloat(plan.secondaryLength)
         updateMarkerTitles()
         updateToggleAppearance()
         configureMenu()
         NSApplication.shared.setActivationPolicy(.accessory)
-        if !useCompactFallback {
-            scheduleCollapseVerification(toggleMinX: toggleX, screen: targetScreen)
+        if !plan.useCompactFallback {
+            let targetScreen = NSScreen.screens.first { $0.displayID == plan.targetDisplayID }
+            scheduleCollapseVerification(toggleMinX: plan.toggleMinX, screen: targetScreen)
         }
-        return true
     }
 
     /// After a collapse, the spacer reflow is async. Verify against real item
@@ -298,7 +302,7 @@ final class StatusSectionController: NSObject {
             let isValid = currentMarkerOrderValid()
             preferencesStore.recordMarkerOrder(valid: isValid)
             if !isValid {
-                safeRepairPath()
+                perform(stateMachine.handle(.repairRequested(.reconciliationFailed)))
             } else {
                 preferencesStore.recordGeometryReadable(true)
             }
@@ -395,11 +399,7 @@ final class StatusSectionController: NSObject {
 
     private func applyCurrentConfiguration() {
         preferencesStore.recordGeometrySnapshot(currentGeometrySnapshot())
-        if toggleState == .collapsed {
-            _ = collapse()
-        } else {
-            applyExpandedLengths()
-        }
+        perform(stateMachine.handle(.reapplyRequested))
         scheduleAutoCollapseIfNeeded()
         updateToggleAppearance()
         updateMarkerTitles()
@@ -667,12 +667,28 @@ final class StatusSectionController: NSObject {
         DispatchQueue.main.asyncAfter(deadline: .now() + 0.35, execute: workItem)
     }
 
-    private func safeRepairPath() {
+    private func applyRepairState(_ failure: MenuBarCollapseFailure) {
         autoCollapseWorkItem?.cancel()
-        toggleState = .expanded
-        HiddenMenuBarTelemetry.menuBar.warning("Entering marker repair path")
+        HiddenMenuBarTelemetry.menuBar.warning("Entering marker repair path: \(failure.rawValue)")
         applyExpandedLengths()
         updateToggleAppearance()
+    }
+
+    private func perform(_ transition: MenuBarTransition) {
+        for effect in transition.effects {
+            switch effect {
+            case .attemptCollapse:
+                _ = collapse()
+            case .applyExpanded:
+                applyExpandedState()
+            case .reapplyExpanded:
+                applyExpandedLengths()
+            case .applyCollapsed(let plan):
+                applyCollapsedState(plan)
+            case .enterRepair(let failure):
+                applyRepairState(failure)
+            }
+        }
     }
 
     @objc private func handleToggleButton(_ sender: NSStatusBarButton?) {
