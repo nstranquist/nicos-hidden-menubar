@@ -47,6 +47,9 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     var profiles: [String: HiddenBarProfile]
     var activeProfile: String
     var firstPartyVisible: FirstPartyVisibleSettings
+    /// Optional for backward-compatible decoding of configs written before the
+    /// standalone app introduced first-run onboarding.
+    var onboardingCompleted: Bool? = nil
     // Parity additions (optional so older persisted configs still decode).
     /// Show the IceBar popover of hidden items instead of inline reveal.
     var iceBarEnabled: Bool? = nil
@@ -60,6 +63,7 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     var isIceBarEnabled: Bool { iceBarEnabled ?? false }
     var isExperimentalItemMovementEnabled: Bool { enableExperimentalItemMovement ?? false }
     var isRevealOnHoverEnabled: Bool { revealOnHover ?? false }
+    var isOnboardingCompleted: Bool { onboardingCompleted ?? false }
 
     static let `default` = HiddenBarConfig(
         schemaVersion: currentSchemaVersion,

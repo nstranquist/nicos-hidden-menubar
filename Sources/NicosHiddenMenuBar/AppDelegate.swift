@@ -7,6 +7,7 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
     private let preferencesStore: PreferencesStore
     private let profileStore: ProfileStore
     private let bridge: HammerspoonBridge
+    private let launchAtLoginController: LaunchAtLoginController
 
     private var preferencesWindow: NSWindow?
     private var onboardingWindow: NSWindow?
@@ -22,11 +23,13 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
     init(
         preferencesStore: PreferencesStore,
         profileStore: ProfileStore,
-        bridge: HammerspoonBridge
+        bridge: HammerspoonBridge,
+        launchAtLoginController: LaunchAtLoginController
     ) {
         self.preferencesStore = preferencesStore
         self.profileStore = profileStore
         self.bridge = bridge
+        self.launchAtLoginController = launchAtLoginController
         super.init()
     }
 
@@ -34,12 +37,13 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         preferencesWindow = openWindow(
             existing: preferencesWindow,
             title: "Nicos Hidden Bar Settings",
-            size: NSSize(width: 520, height: 520)
+            size: NSSize(width: 680, height: 720)
         ) {
             PreferencesView()
                 .environmentObject(self.preferencesStore)
                 .environmentObject(self.profileStore)
                 .environmentObject(self.bridge)
+                .environmentObject(self.launchAtLoginController)
         }
     }
 
@@ -47,9 +51,17 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         onboardingWindow = openWindow(
             existing: onboardingWindow,
             title: "Nicos Hidden Bar Onboarding",
-            size: NSSize(width: 500, height: 420)
+            size: NSSize(width: 560, height: 480)
         ) {
-            OnboardingView()
+            OnboardingView(onComplete: { [weak self] in
+                guard let self else { return }
+                let didSave = self.preferencesStore.updateConfig { config in
+                    config.onboardingCompleted = true
+                }
+                if didSave {
+                    self.onboardingWindow?.close()
+                }
+            })
                 .environmentObject(self.preferencesStore)
                 .environmentObject(self.bridge)
         }
@@ -145,11 +157,13 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     private let preferencesStore = PreferencesStore.shared
     private let profileStore = ProfileStore.shared
     private let bridge = HammerspoonBridge.shared
+    private let launchAtLoginController = LaunchAtLoginController.shared
 
     private lazy var coordinator = AppCoordinator(
         preferencesStore: preferencesStore,
         profileStore: profileStore,
-        bridge: bridge
+        bridge: bridge,
+        launchAtLoginController: launchAtLoginController
     )
 
     private var statusController: StatusSectionController?
@@ -209,7 +223,17 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
-        if preferencesStore.config.showPreferencesOnLaunch {
+        preferencesStore.$config
+            .map(\.launchAtLogin)
+            .removeDuplicates()
+            .sink { [weak self] enabled in
+                self?.launchAtLoginController.reconcile(enabled: enabled)
+            }
+            .store(in: &cancellables)
+
+        if !preferencesStore.config.isOnboardingCompleted {
+            coordinator.openOnboarding()
+        } else if preferencesStore.config.showPreferencesOnLaunch {
             coordinator.openPreferences()
         }
     }

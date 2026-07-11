@@ -4,6 +4,7 @@ struct PreferencesView: View {
     @EnvironmentObject private var preferencesStore: PreferencesStore
     @EnvironmentObject private var profileStore: ProfileStore
     @EnvironmentObject private var bridge: HammerspoonBridge
+    @EnvironmentObject private var launchAtLoginController: LaunchAtLoginController
 
     private var configuredTitles: [String] {
         preferencesStore.config.firstPartyVisible.preferredVisibleTitles
@@ -24,25 +25,44 @@ struct PreferencesView: View {
         Form {
             Section("General") {
                 Toggle("Launch at login", isOn: binding(\.launchAtLogin))
+                HStack {
+                    Text("Login item: \(launchAtLoginController.statusDescription)")
+                        .font(.caption)
+                        .foregroundStyle(.secondary)
+                    Spacer()
+                    if launchAtLoginController.requiresApproval {
+                        Button("Open System Settings") {
+                            launchAtLoginController.openSystemSettings()
+                        }
+                    }
+                }
+                if let message = launchAtLoginController.message {
+                    Text(message)
+                        .font(.caption)
+                        .foregroundStyle(.red)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
                 Toggle("Show preferences on launch", isOn: binding(\.showPreferencesOnLaunch))
                 Toggle("Use regular activation on expand", isOn: binding(\.useRegularActivationOnExpand))
                 Toggle("Hide markers while expanded", isOn: binding(\.hideMarkersWhileExpanded))
             }
 
-            Section("IceBar & Items") {
-                Toggle("Reveal hidden items in IceBar popover", isOn: optionalBinding(\.iceBarEnabled))
+            Section("Hidden Items") {
+                Toggle("Reveal hidden items in a floating panel", isOn: optionalBinding(\.iceBarEnabled))
                 Text("Shows hidden items in a floating panel instead of reflowing them into the menu bar — the reliable fix on notched displays.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 Toggle("Experimental: truly move/hide items (Cmd-drag)", isOn: optionalBinding(\.enableExperimentalItemMovement))
-                Text("Synthesizes Cmd-drag to rearrange any app's items, like Ice. Off by default — it manipulates your real menu bar and needs Accessibility permission.")
+                Text("Synthesizes Command-drag to rearrange another app's items. Off by default — it manipulates your real menu bar and needs Accessibility permission.")
                     .font(.caption)
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
                 if MenuBarItemImageCapture.hasScreenRecordingPermission() {
-                    Label("Screen Recording granted — IceBar shows item icons", systemImage: "checkmark.circle")
+                    Label("Screen Recording granted — the panel shows item icons", systemImage: "checkmark.circle")
                         .foregroundStyle(.green)
                 } else {
-                    Button("Grant Screen Recording (for IceBar icons)") {
+                    Button("Grant Screen Recording for item icons") {
                         MenuBarItemImageCapture.requestScreenRecordingPermission()
                     }
                 }
@@ -91,6 +111,7 @@ struct PreferencesView: View {
             Section("First Party Visible Titles") {
                 Text("Configured titles are persisted in config. Dragging markers does not rewrite this list automatically.")
                     .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
 
                 ForEach(candidateTitles, id: \.self) { title in
                     Toggle(
@@ -128,7 +149,8 @@ struct PreferencesView: View {
             }
         }
         .padding()
-        .frame(width: 520, height: 620)
+        .formStyle(.grouped)
+        .frame(minWidth: 640, minHeight: 680)
     }
 
     private func optionalBinding(_ keyPath: WritableKeyPath<HiddenBarConfig, Bool?>) -> Binding<Bool> {

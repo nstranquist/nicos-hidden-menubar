@@ -3,39 +3,65 @@ import SwiftUI
 struct OnboardingView: View {
     @EnvironmentObject private var preferencesStore: PreferencesStore
     @EnvironmentObject private var bridge: HammerspoonBridge
+    let onComplete: () -> Void
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 16) {
-            Text("Nicos Hidden Bar")
-                .font(.title2.bold())
+        VStack(alignment: .leading, spacing: 18) {
+            Label("Nicos Hidden Bar", systemImage: "menubar.rectangle")
+                .font(.title.bold())
 
-            Text("Drag the separator markers so the toggle stays on the right and your first-party items remain in the visible lane.")
+            Text("A tidy menu bar in three quick steps")
+                .font(.title3.weight(.semibold))
 
-            if !bridge.status.preferredVisibleTitles.isEmpty {
-                Text("Bridge-suggested visible titles: \(bridge.status.preferredVisibleTitles.joined(separator: ", "))")
-                    .foregroundStyle(.secondary)
+            VStack(alignment: .leading, spacing: 12) {
+                setupStep("1", "Hold Command and drag the chevron and separator markers into position.")
+                setupStep("2", "Keep everyday items to the right of the separator; move less-used items to its left.")
+                setupStep("3", "Click the chevron to collapse and reveal the hidden region.")
             }
 
-            Text("If you want a different persisted first-party visible set, change it in Settings. Dragging the markers only changes layout; it does not rewrite the config.")
+            Text("Option-click the chevron whenever you need to reveal the markers again. Right-click it for Settings and Diagnostics.")
                 .foregroundStyle(.secondary)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let importNote = preferencesStore.diagnostics.importNote {
                 VStack(alignment: .leading, spacing: 8) {
-                    Text("Imported from \(importNote.sourceDomain)")
-                        .font(.headline)
+                    Label("Imported preferences from \(importNote.sourceDomain)", systemImage: "checkmark.circle")
+                        .font(.subheadline.weight(.semibold))
                     if !importNote.ignoredKeys.isEmpty {
                         Text("Ignored keys: \(importNote.ignoredKeys.joined(separator: ", "))")
+                            .font(.caption)
                             .foregroundStyle(.secondary)
                     }
                 }
             }
 
-            Text("Use Option-click on the toggle to temporarily reveal the markers for drag setup.")
-                .foregroundStyle(.secondary)
+            if !bridge.status.preferredVisibleTitles.isEmpty {
+                Text("Suggested visible items: \(bridge.status.preferredVisibleTitles.joined(separator: ", "))")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+            }
 
             Spacer()
+
+            HStack {
+                Spacer()
+                Button("Get Started", action: onComplete)
+                    .keyboardShortcut(.defaultAction)
+            }
         }
-        .padding(20)
-        .frame(width: 500, height: 420)
+        .padding(28)
+        .frame(width: 560, height: 480)
+    }
+
+    private func setupStep(_ number: String, _ text: String) -> some View {
+        HStack(alignment: .top, spacing: 12) {
+            Text(number)
+                .font(.caption.bold())
+                .foregroundStyle(.white)
+                .frame(width: 22, height: 22)
+                .background(Color.accentColor, in: Circle())
+            Text(text)
+                .fixedSize(horizontal: false, vertical: true)
+        }
     }
 }

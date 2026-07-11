@@ -23,11 +23,13 @@ final class ConfigRoundTripTests: XCTestCase {
 
         XCTAssertTrue(FileManager.default.fileExists(atPath: paths.configURL.path))
         XCTAssertEqual(store.config.activeProfile, "default")
+        XCTAssertFalse(store.config.isOnboardingCompleted)
 
         XCTAssertTrue(store.updateConfig { current in
             current.activeProfile = "focus"
             current.autoCollapse.seconds = 12
             current.firstPartyVisible.preferredVisibleTitles = ["TO", "PW"]
+            current.onboardingCompleted = true
         })
 
         let reloadedStore = PreferencesStore(
@@ -39,6 +41,7 @@ final class ConfigRoundTripTests: XCTestCase {
         XCTAssertEqual(reloadedStore.config.activeProfile, "focus")
         XCTAssertEqual(reloadedStore.config.autoCollapse.seconds, 12)
         XCTAssertEqual(reloadedStore.config.firstPartyVisible.preferredVisibleTitles, ["TO", "PW"])
+        XCTAssertTrue(reloadedStore.config.isOnboardingCompleted)
     }
 
     func testConfigValidationFailsClosed() {
