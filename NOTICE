@@ -1,0 +1,14 @@
+Nicos Hidden Bar
+Copyright (C) 2026 Nico Stranquist
+
+This project includes modified techniques and code adapted from Ice:
+https://github.com/jordanbaird/Ice
+Copyright (C) 2025 Jordan Baird and Ice contributors
+
+Nicos Hidden Bar and the adapted work are distributed under the GNU General
+Public License, version 3. The complete license is included in LICENSE.
+
+The adapted implementation has been modified for Nicos Hidden Bar's independent
+configuration, diagnostics, profiles, marker-based collapse behavior, and
+standalone Swift Package layout.
+

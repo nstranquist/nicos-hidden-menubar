@@ -35,7 +35,7 @@ synthetic Command-drag movement of other apps' items remains explicitly opt-in.
 ## 3. Data Model
 
 - Canonical user configuration:
-  `~/.config/apps/desktop/nicos-hidden-menubar/config.json`.
+  `~/.config/nicos-hidden-menubar/config.json`.
 - Persist active profile, auto-collapse settings, shortcut, lanes, panel and
   movement feature flags, first-party-visible titles, and onboarding state.
 - Persist marker positions through stable `NSStatusItem.autosaveName` values.
@@ -60,7 +60,7 @@ synthetic Command-drag movement of other apps' items remains explicitly opt-in.
 
 1. `swift test` passes with no failures and `make headless-smoke` passes.
 2. Release build installs as `/Applications/NicosHiddenMenuBar.app`, launches
-   without a Dock icon, and has a loaded per-user login agent.
+   without a Dock icon, and is registered as a per-user login item when enabled.
 3. First launch creates valid config and presents understandable onboarding.
 4. On this Mac, clicking the toggle hides and restores the intended menu items;
    auto-collapse and the global shortcut work; marker order survives relaunch.
@@ -85,8 +85,8 @@ synthetic Command-drag movement of other apps' items remains explicitly opt-in.
   the current menu-bar order, and record diagnostics.
 - Missing Hidden Bar preferences: skip migration silently and initialize clean
   defaults.
-- Login-agent installation failure: leave the app runnable and report the
-  failed installation step without deleting user config.
+- Login-item registration failure: leave the app runnable and report the failed
+  Service Management step without deleting user config.
 
 ## 7. Deferred / Out of Scope
 
