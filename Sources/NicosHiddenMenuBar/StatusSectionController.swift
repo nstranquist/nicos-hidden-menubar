@@ -32,6 +32,7 @@ final class StatusSectionController: NSObject {
     private var autoCollapseWorkItem: DispatchWorkItem?
     private var revealWorkItem: DispatchWorkItem?
     private var geometryRefreshWorkItem: DispatchWorkItem?
+    private var compactFallbackDisplayIDs: Set<CGDirectDisplayID> = []
     private var cancellables: Set<AnyCancellable> = []
 
     init(
@@ -155,14 +156,26 @@ final class StatusSectionController: NSObject {
         preferencesStore.recordGeometryReadable(true)
         autoCollapseWorkItem?.cancel()
         toggleState = .collapsed
-        HiddenMenuBarTelemetry.menuBar.info("Collapsing menu bar section")
-        primarySeparatorItem.length = CGFloat(collapseWidth)
+        let targetScreen = toggleItem.button?.window?.screen ?? activeMouseScreen()
+        let useCompactFallback = shouldUseCompactFallback(
+            on: targetScreen,
+            geometrySnapshot: geometrySnapshot
+        )
+        if useCompactFallback {
+            HiddenMenuBarTelemetry.menuBar.info("Keeping failed notch spacer compact")
+            primarySeparatorItem.length = primaryExpandedLength(for: config)
+        } else {
+            HiddenMenuBarTelemetry.menuBar.info("Collapsing menu bar section")
+            primarySeparatorItem.length = CGFloat(collapseWidth)
+        }
         secondarySeparatorItem.length = secondaryExpandedLength(for: config)
         updateMarkerTitles()
         updateToggleAppearance()
         configureMenu()
         NSApplication.shared.setActivationPolicy(.accessory)
-        scheduleCollapseVerification(toggleMinX: toggleX, screen: toggleItem.button?.window?.screen)
+        if !useCompactFallback {
+            scheduleCollapseVerification(toggleMinX: toggleX, screen: targetScreen)
+        }
         return true
     }
 
@@ -184,8 +197,37 @@ final class StatusSectionController: NSObject {
                 HiddenMenuBarTelemetry.menuBar.warning(
                     "Collapse did not push any item off the visible edge (notch=\(scan.hasNotch))"
                 )
+                if self.shouldRevealBelowMenuBar(on: target) {
+                    if let target {
+                        self.compactFallbackDisplayIDs.insert(target.displayID)
+                    }
+                    HiddenMenuBarTelemetry.menuBar.info("Releasing ineffective spacer for below-menu-bar reveal")
+                    self.applyExpandedLengths()
+                    self.preferencesStore.recordGeometrySnapshot(self.currentGeometrySnapshot())
+                }
             }
         }
+    }
+
+    private func shouldUseCompactFallback(
+        on screen: NSScreen?,
+        geometrySnapshot: HiddenBarGeometrySnapshot
+    ) -> Bool {
+        guard let screen, shouldRevealBelowMenuBar(on: screen) else {
+            return false
+        }
+        if compactFallbackDisplayIDs.contains(screen.displayID) {
+            return true
+        }
+        let priorFailureMatchesNotchedScreen = geometrySnapshot.notchDetected == true
+            && MarkerGeometry.shouldUseCompactFallback(
+                revealsBelowMenuBar: true,
+                collapseHidItems: preferencesStore.diagnostics.lastCollapseHidItems
+            )
+        if priorFailureMatchesNotchedScreen {
+            compactFallbackDisplayIDs.insert(screen.displayID)
+        }
+        return priorFailureMatchesNotchedScreen
     }
 
     /// Open the IceBar popover of hidden items. The real notch fix: hidden items

@@ -75,6 +75,13 @@ public enum MarkerGeometry {
         return anchorX > screenMidX && anchorX < screenMaxX - 1 && anchorX >= screenMinX
     }
 
+    static func shouldUseCompactFallback(
+        revealsBelowMenuBar: Bool,
+        collapseHidItems: Bool?
+    ) -> Bool {
+        revealsBelowMenuBar && collapseHidItems == false
+    }
+
     public static func preferredVisibleFrameMaxX(
         primaryMinX: Double?,
         preferredVisibleFrameMaxX: [Double?],

@@ -30,6 +30,25 @@ final class MarkerGeometryTests: XCTestCase {
         ))
     }
 
+    func testCompactFallbackOnlyAppliesToFailedBelowMenuBarCollapse() {
+        XCTAssertTrue(MarkerGeometry.shouldUseCompactFallback(
+            revealsBelowMenuBar: true,
+            collapseHidItems: false
+        ))
+        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
+            revealsBelowMenuBar: false,
+            collapseHidItems: false
+        ))
+        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
+            revealsBelowMenuBar: true,
+            collapseHidItems: true
+        ))
+        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
+            revealsBelowMenuBar: true,
+            collapseHidItems: nil
+        ))
+    }
+
     func testCollapsedWidthUsesFrozenFormulaAndClamp() {
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1440, primaryMinX: 1420), 32.0)
         XCTAssertEqual(MarkerGeometry.collapsedWidth(visibleFrameMaxX: 1512, primaryMinX: 1012), 500.0)
