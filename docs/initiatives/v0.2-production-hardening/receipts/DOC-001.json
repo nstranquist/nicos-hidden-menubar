@@ -1,0 +1,26 @@
+{
+  "schema_version": 1,
+  "requirement_id": "DOC-001",
+  "observed_at": "2026-07-11",
+  "implementation": {
+    "commit": "951ff914218bfb0488797033adc5e7ef41b3ccb0"
+  },
+  "checks": [
+    {
+      "acceptance_id": "DOC-001-A",
+      "command": "make docs-check",
+      "status": "passed",
+      "result": "docs-check: ok (10 requirements, 21 acceptance criteria)",
+      "environment": "local macOS host",
+      "limitation": "No repository CI workflow exists yet, so DOC-001-A is not verified."
+    },
+    {
+      "acceptance_id": "DOC-001-B",
+      "command": "shasum -a 256 spec.md",
+      "status": "passed",
+      "result": "217f459624e65e2bc231d06d73180a30afd82130aa747e0ec816fa6af6b16365",
+      "source_commit": "2ca735411d5cdf16e4da969c7fe373da98d77703",
+      "conclusion": "The frozen v0.1 contract remains unchanged."
+    }
+  ]
+}

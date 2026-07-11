@@ -7,7 +7,7 @@ requirements:
   - id: ARC-001
     group: architecture
     priority: must
-    state: proposed
+    state: accepted
     title: Extract a testable state machine and services
     statement: The central controller delegates pure transitions and side effects to bounded owners.
     design_ref: architecture/overview.md#target-boundaries
@@ -112,7 +112,7 @@ requirements:
   - id: TEST-001
     group: quality
     priority: must
-    state: proposed
+    state: accepted
     title: Integration and lifecycle coverage
     statement: Automated coverage includes controller effects, panel lifecycle, permissions, and display changes.
     design_ref: quality/test-matrix.md
@@ -163,7 +163,7 @@ requirements:
   - id: DOC-001
     group: documentation
     priority: should
-    state: proposed
+    state: implemented
     title: Traceable product documentation
     statement: Product promise, decisions, requirements, tests, evidence, and releases remain linked and current.
     design_ref: INDEX.md#lifecycle-rules
@@ -174,5 +174,17 @@ requirements:
       - id: DOC-001-B
         type: review
         statement: Frozen historical contracts are not rewritten to hide deviations.
-    evidence: []
+    evidence:
+      - acceptance_id: DOC-001-A
+        kind: commit
+        ref: git:951ff914218bfb0488797033adc5e7ef41b3ccb0
+        observed_at: 2026-07-11
+      - acceptance_id: DOC-001-A
+        kind: test
+        ref: file:docs/initiatives/v0.2-production-hardening/receipts/DOC-001.json
+        observed_at: 2026-07-11
+      - acceptance_id: DOC-001-B
+        kind: review
+        ref: file:docs/initiatives/v0.2-production-hardening/receipts/DOC-001.json
+        observed_at: 2026-07-11
     risks: [documentation-drift]

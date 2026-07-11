@@ -1,10 +1,11 @@
 # Implementation plan
 
-- Status: Proposed
+- Status: Accepted; Slice 1 active
 - Scope source: [`requirements.yaml`](requirements.yaml)
 
 No slice starts merely because it appears here. Accept the relevant requirements
-and proposed ADRs before implementation.
+and proposed ADRs before implementation. `ARC-001` and `TEST-001` were accepted
+on 2026-07-11 for Slice 1; later slices remain unaccepted.
 
 ## Slice 0: Documentation and baseline
 

@@ -44,16 +44,16 @@ an unknown acceptance ID.
 
 | Requirement | State | Blocking evidence |
 | --- | --- | --- |
-| ARC-001 | proposed | state-machine and structural coverage |
+| ARC-001 | accepted | state-machine and structural coverage |
 | ITEM-001 | proposed | identity fixtures and migration |
 | ACT-001 | proposed | direct activation tests and hardware smoke |
 | MOVE-001 | proposed | retries, rollback, and owner matrix |
 | DSP-001 | proposed | automated topology plus external display |
 | CAP-001 | proposed | incremental cache and latency evidence |
-| TEST-001 | proposed | integration suite on CI |
+| TEST-001 | accepted | integration suite on CI |
 | PERF-001 | proposed | machine-readable budgets and baseline receipt |
 | REL-001 | proposed | CI plus signed/notarized clean-machine artifact |
-| DOC-001 | proposed | schema/link validation and review |
+| DOC-001 | implemented | validator is committed and local checks pass; CI execution remains missing |
 
 ## Known blockers
 
