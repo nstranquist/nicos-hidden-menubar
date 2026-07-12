@@ -1,16 +1,17 @@
 # Implementation plan
 
-- Status: Accepted; Slice 1 active
+- Status: Accepted; Slice 1 complete
 - Scope source: [`requirements.yaml`](requirements.yaml)
 
 No slice starts merely because it appears here. Accept the relevant requirements
 and proposed ADRs before implementation. `ARC-001` and `TEST-001` were accepted
 on 2026-07-11 for Slice 1; later slices remain unaccepted.
 
-The first Slice 1 boundary is implemented in `722da6c`: the pure state machine,
-typed effects, controller adapter, and service protocols exist. Concrete
-service-owner extraction and broader controller integration remain before the
-slice can be verified.
+Slice 1 is verified across `722da6c` and `b735e93`: the pure state machine,
+typed effects, controller adapter, service protocols, concrete live owners,
+composition-root injection, and reveal-model injection are implemented. The
+live activation owner preserves the safe v0.1 reveal-for-click behavior; direct
+activation remains scoped to Slice 2 and `ACT-001`.
 
 ## Slice 0: Documentation and baseline
 
@@ -29,6 +30,9 @@ Exit: DOC-001 accepted and its automated checks are green.
 - Keep AppKit adaptation in the existing controller until parity tests pass.
 
 Requirements: ARC-001, TEST-001.
+
+Exit: `ARC-001` is verified. `TEST-001` remains accepted because its broader
+integration/CI matrix belongs to later slices.
 
 ## Slice 2: Identity and activation
 

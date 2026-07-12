@@ -44,7 +44,7 @@ an unknown acceptance ID.
 
 | Requirement | State | Blocking evidence |
 | --- | --- | --- |
-| ARC-001 | implemented | pure reducer is covered; concrete service owners remain |
+| ARC-001 | verified | reducer and injected service owners are covered |
 | ITEM-001 | proposed | identity fixtures and migration |
 | ACT-001 | proposed | direct activation tests and hardware smoke |
 | MOVE-001 | proposed | retries, rollback, and owner matrix |
@@ -64,10 +64,14 @@ an unknown acceptance ID.
 
 ## Slice 1 evidence
 
-- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 47 passing
+- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 51 passing
   package tests.
+- `ARC-001-B`: the application composition root injects distinct live discovery,
+  placement, activation, capture, and diagnostics owners. Four boundary tests
+  prove discovery/capture routing, activation-to-placement delegation, disabled
+  movement fallback, and typed failure propagation.
 - Runtime parity: the optimized app passed the headless launch, settings-window,
-  and no-foreground smoke.
-- `ARC-001-B` remains pending: service protocols exist, but the v0.1 concrete
-  discovery, placement, activation, capture, and diagnostics owners have not
-  all been extracted and injected.
+  and no-foreground smoke on 2026-07-12.
+- The live activation owner intentionally preserves v0.1 behavior: it reveals
+  an item into the visible lane for a subsequent click. Direct activation
+  remains owned by `ACT-001`; ARC-001 does not claim it is complete.

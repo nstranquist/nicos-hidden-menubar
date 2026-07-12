@@ -26,5 +26,8 @@ or mark a requirement verified.
 
 ## Current state
 
-No v0.2 requirement is accepted or verified yet. Existing v0.1 evidence is a
-baseline, not proof of the stronger contracts proposed here.
+`ARC-001` is verified: the pure state machine and all five concrete service
+owners are extracted, injected, and covered by package plus headless-launch
+evidence. `DOC-001` is implemented and `TEST-001` is accepted. Later identity,
+activation, placement, display, capture, performance, and release requirements
+remain proposed; v0.1 observations are baseline only for those contracts.

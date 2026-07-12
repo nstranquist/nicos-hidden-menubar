@@ -14,14 +14,15 @@ inline reveal or a below-menu-bar panel. It does not use a network service.
 | Section state | pure expanded/collapsed transitions and typed effects | `MenuBarStateMachine` |
 | AppKit section adapter | geometry inputs, status items, menus, effect execution | `StatusSectionController` |
 | Geometry | pure ordering, width, notch fallback predicates | `MarkerGeometry` |
-| Discovery | enumerate real menu-item windows and frames | `MenuBarItemScanner` + `MenuBarBridging` |
+| Discovery | enumerate real menu-item windows and frames | injected `LiveMenuBarDiscoveryService` over `MenuBarItemScanner` + `MenuBarBridging` |
 | Item identity | owner, title, display label | `MenuBarItemInfo` |
-| Item movement | opt-in synthesized Command-drag | `MenuBarItemMover` |
-| Reveal panel | layout, search, capture lifecycle | `IceBarPanel` + `IceBarModel` |
-| Image capture | ScreenCaptureKit snapshots | `MenuBarItemImageCapture` |
+| Item movement | opt-in synthesized Command-drag | injected `LiveMenuBarPlacementService` over `MenuBarItemMover` |
+| Reveal-for-activation | safe visible-lane routing and fallback | injected `LiveMenuBarActivationService` |
+| Reveal panel | layout, search, capture lifecycle | `IceBarPanel` + injected-owner `IceBarModel` |
+| Image capture | ScreenCaptureKit snapshots | injected `LiveMenuBarCaptureService` over `MenuBarItemImageCapture` |
 | Configuration | validation and atomic JSON persistence | `PreferencesStore` |
 | Service contracts | discovery, placement, activation, capture, diagnostics | `MenuBarServiceBoundaries` protocols |
-| Diagnostics | local snapshots and permission/geometry health | `PreferencesStore` + views |
+| Diagnostics | structured local events plus permission/geometry health | injected `LiveMenuBarDiagnosticsRecorder` + `PreferencesStore` + views |
 | Display changes | debounced macOS notifications | `ScreenObserver` |
 
 ## Current data flow
@@ -31,14 +32,18 @@ click / hotkey / URL
         |
         v
 StatusSectionController
-        |
+        | injected MenuBarServices
         v
 MenuBarStateMachine -> typed effects
-  |          |             |
-  v          v             v
-geometry   scanner      reveal panel
-  |          |             |
-  +----------+-------> diagnostics
+  |          |                    |
+  v          v                    v
+geometry  discovery owner   reveal panel model
+             |                    |
+             +-----------> capture owner
+             |
+             +-----------> activation owner -> placement owner
+  |                               |
+  +-----------------------> diagnostics owner
                            |
                            v
                  local JSON under ~/.config
@@ -60,10 +65,10 @@ live verification proves it hid nothing, the app releases it rather than leave
 a large blank region. True deterministic placement and activation require the
 proposed item-manager architecture in ADR-0002.
 
-The state reducer and service protocols now exist, but discovery, placement,
-activation, capture, and diagnostics still use their v0.1 concrete owners. The
-protocols are migration seams, not evidence that those services are already
-fully extracted.
+The state reducer and live service owners are extracted and injected. The
+activation owner currently preserves v0.1 reveal-for-click behavior rather than
+claiming direct activation; `ACT-001` owns the stronger direct activation,
+permission outcome, retry, and recovery contract.
 
 ## Target boundaries
 
