@@ -1,5 +1,4 @@
 import AppKit
-import CoreGraphics
 import Darwin
 import Foundation
 
@@ -156,8 +155,9 @@ enum HiddenBarHeadlessSelfTest {
         }
     }
 
-    /// Capture only this app's own window (by window id), so it works even when
-    /// the window is parked off-screen and never picks up the user's desktop.
+    /// Render only this app's content view, so it works while the window is
+    /// parked off-screen, needs no capture permission, and cannot include the
+    /// user's desktop.
     private static func captureWindow(_ window: NSWindow, to path: String) -> (ok: Bool, detail: String) {
         guard window.windowNumber > 0 else { return (false, "window not ordered in") }
         guard let contentView = window.contentView else {
