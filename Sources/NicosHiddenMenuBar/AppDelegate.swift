@@ -192,9 +192,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bridge.refresh(using: preferencesStore.config)
         preferencesStore.recordBridgeStatus(bridge.status)
 
+        let menuBarServices = MenuBarServices.live(preferencesStore: preferencesStore)
         statusController = StatusSectionController(
             preferencesStore: preferencesStore,
             profileStore: profileStore,
+            services: menuBarServices,
             openSettings: { [weak self] in self?.coordinator.openPreferences() },
             openDiagnostics: { [weak self] in self?.coordinator.openDiagnostics() },
             openOnboarding: { [weak self] in self?.coordinator.openOnboarding() }

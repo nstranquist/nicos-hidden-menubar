@@ -37,33 +37,34 @@ final class ParityModelTests: XCTestCase {
     }
 
     func testIceBarHiddenCandidatesFilterLeftOfToggleAndExcludeOwnControls() {
-        func win(_ id: CGWindowID, minX: Double, width: Double, ns: String) -> MenuBarWindowInfo {
-            MenuBarWindowInfo(
-                windowID: id,
-                frame: CGRect(x: minX, y: 0, width: width, height: 24),
-                ownerPID: 1,
-                ownerName: ns,
+        func item(_ id: CGWindowID, minX: Double, width: Double, ownerPID: Int32 = 1, name: String) -> MenuBarDiscoveredItem {
+            MenuBarDiscoveredItem(
+                handle: MenuBarItemHandle(windowID: id),
+                ownerPID: ownerPID,
+                ownerName: name,
                 title: "",
-                isOnScreen: true
+                displayName: name,
+                frame: CGRect(x: minX, y: 0, width: width, height: 24),
             )
         }
         let items = [
-            win(1, minX: 100, width: 24, ns: "com.example.a"),           // left of toggle → hidden
-            win(2, minX: 200, width: 24, ns: "com.apple.controlcenter"), // system extra → included
-            win(3, minX: 900, width: 24, ns: "com.example.b"),           // right of toggle → not hidden
-            MenuBarWindowInfo(
-                windowID: 4, frame: CGRect(x: 300, y: 0, width: 24, height: 24),
-                ownerPID: 42, ownerName: "Nicos Hidden Bar", title: "", isOnScreen: true
-            ),
+            item(1, minX: 100, width: 24, name: "com.example.a"),
+            item(2, minX: 200, width: 24, name: "com.apple.controlcenter"),
+            item(3, minX: 900, width: 24, name: "com.example.b"),
+            item(4, minX: 300, width: 24, ownerPID: 42, name: "Nicos Hidden Bar"),
         ]
         let hidden = IceBarModel.hiddenCandidates(items, leftOfX: 700, excludingOwnerPID: 42)
-        XCTAssertEqual(hidden.map(\.windowID), [1, 2])
+        XCTAssertEqual(hidden.map(\.handle.windowID), [1, 2])
     }
 
     func testIceBarHiddenCandidatesWithoutAnchorReturnsAllMovable() {
-        let item = MenuBarWindowInfo(
-            windowID: 5, frame: CGRect(x: 10, y: 0, width: 20, height: 24),
-            ownerPID: 1, ownerName: "com.example.x", title: "", isOnScreen: true
+        let item = MenuBarDiscoveredItem(
+            handle: MenuBarItemHandle(windowID: 5),
+            ownerPID: 1,
+            ownerName: "com.example.x",
+            title: "",
+            displayName: "Example",
+            frame: CGRect(x: 10, y: 0, width: 20, height: 24)
         )
         XCTAssertEqual(IceBarModel.hiddenCandidates([item], leftOfX: nil).count, 1)
     }

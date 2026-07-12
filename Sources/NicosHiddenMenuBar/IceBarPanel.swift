@@ -9,11 +9,16 @@ import SwiftUI
 @MainActor
 final class IceBarPanel {
     private var panel: NSPanel?
-    private let model = IceBarModel()
+    private let model: IceBarModel
     private let onActivate: (CGWindowID) -> Void
     private var reloadTask: Task<Void, Never>?
 
-    init(onActivate: @escaping (CGWindowID) -> Void) {
+    init(
+        discovery: any MenuBarItemDiscovering,
+        capture: any MenuBarItemCapturing,
+        onActivate: @escaping (CGWindowID) -> Void
+    ) {
+        self.model = IceBarModel(discovery: discovery, capture: capture)
         self.onActivate = onActivate
     }
 
@@ -124,27 +129,50 @@ struct IceBarLayout: Equatable, Sendable {
 /// Observable model holding the captured hidden items for the IceBar.
 @MainActor
 final class IceBarModel: ObservableObject {
-    @Published var items: [MenuBarItemImageCapture.CapturedItem] = []
+    @Published var items: [MenuBarCapturedItem] = []
     @Published var usesImages = false
     @Published var query: String = ""
     @Published var columnCount = 1
 
+    private let discovery: any MenuBarItemDiscovering
+    private let capture: any MenuBarItemCapturing
+
+    init(
+        discovery: any MenuBarItemDiscovering,
+        capture: any MenuBarItemCapturing
+    ) {
+        self.discovery = discovery
+        self.capture = capture
+    }
+
     /// Items after applying the search filter.
-    var filteredItems: [MenuBarItemImageCapture.CapturedItem] {
+    var filteredItems: [MenuBarCapturedItem] {
         let q = query.trimmingCharacters(in: .whitespaces).lowercased()
         guard !q.isEmpty else { return items }
-        return items.filter { $0.displayName.lowercased().contains(q) }
+        return items.filter { $0.item.displayName.lowercased().contains(q) }
     }
 
     func reload(on screen: NSScreen, leftOfX: Double?) async {
-        let detailed = IceBarModel.hiddenCandidates(
-            MenuBarItemScanner.detailedItems(screen: screen),
+        await reload(
+            on: MenuBarDisplayHandle(rawValue: screen.displayID),
             leftOfX: leftOfX,
             excludingOwnerPID: ProcessInfo.processInfo.processIdentifier
         )
-        let captured = await MenuBarItemImageCapture.capture(items: detailed, on: screen)
+    }
+
+    func reload(
+        on display: MenuBarDisplayHandle,
+        leftOfX: Double?,
+        excludingOwnerPID: Int32?
+    ) async {
+        let detailed = IceBarModel.hiddenCandidates(
+            discovery.discoverItems(on: display),
+            leftOfX: leftOfX,
+            excludingOwnerPID: excludingOwnerPID
+        )
+        let captured = await capture.capture(detailed, on: display)
         guard !Task.isCancelled else { return }
-        self.usesImages = captured.contains { $0.image != nil }
+        self.usesImages = captured.contains { $0.pngData != nil }
         self.items = captured
     }
 
@@ -160,10 +188,10 @@ final class IceBarModel: ObservableObject {
     /// is the notch-safe way to reach them. Only this app's own control windows
     /// are excluded. With no anchor, fall back to all foreign items.
     nonisolated static func hiddenCandidates(
-        _ items: [MenuBarWindowInfo],
+        _ items: [MenuBarDiscoveredItem],
         leftOfX: Double?,
-        excludingOwnerPID: pid_t? = nil
-    ) -> [MenuBarWindowInfo] {
+        excludingOwnerPID: Int32? = nil
+    ) -> [MenuBarDiscoveredItem] {
         items.filter { item in
             guard item.ownerPID != excludingOwnerPID else { return false }
             guard let leftOfX else { return true }
@@ -198,15 +226,15 @@ private struct IceBarView: View {
             } else {
                 ScrollView(.vertical) {
                     LazyVGrid(columns: gridColumns, spacing: 6) {
-                        ForEach(model.filteredItems, id: \.windowID) { item in
+                        ForEach(model.filteredItems, id: \.item.handle.windowID) { item in
                             Button {
-                                onActivate(item.windowID)
+                                onActivate(item.item.handle.windowID)
                             } label: {
                                 itemLabel(item)
                                     .frame(maxWidth: .infinity, minHeight: 30)
                             }
                             .buttonStyle(.plain)
-                            .help(item.displayName)
+                            .help(item.item.displayName)
                         }
                     }
                     .padding(.horizontal, 2)
@@ -233,15 +261,15 @@ private struct IceBarView: View {
     }
 
     @ViewBuilder
-    private func itemLabel(_ item: MenuBarItemImageCapture.CapturedItem) -> some View {
-        if let image = item.image {
-            Image(decorative: image, scale: NSScreen.main?.backingScaleFactor ?? 2)
+    private func itemLabel(_ item: MenuBarCapturedItem) -> some View {
+        if let pngData = item.pngData, let image = NSImage(data: pngData) {
+            Image(nsImage: image)
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 22)
                 .padding(.horizontal, 2)
         } else {
-            Text(shortLabel(item.displayName))
+            Text(shortLabel(item.item.displayName))
                 .font(.system(size: 11, weight: .medium))
                 .lineLimit(2)
                 .multilineTextAlignment(.center)

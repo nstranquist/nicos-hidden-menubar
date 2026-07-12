@@ -9,6 +9,7 @@ final class StatusSectionController: NSObject {
 
     private let preferencesStore: PreferencesStore
     private let profileStore: ProfileStore
+    private let services: MenuBarServices
     private let openSettings: () -> Void
     private let openDiagnostics: () -> Void
     private let openOnboarding: () -> Void
@@ -21,10 +22,14 @@ final class StatusSectionController: NSObject {
     private var stateMachine = MenuBarStateMachine()
     private var toggleState: MenuBarSectionMode { stateMachine.state.mode }
     private var lastToggleAt = Date.distantPast
-    private var lastScan: MenuBarItemScanner.Scan?
-    private lazy var iceBar = IceBarPanel { [weak self] windowID in
-        self?.activateHiddenItem(windowID)
-    }
+    private var lastScan: MenuBarDiscoverySnapshot?
+    private lazy var iceBar = IceBarPanel(
+        discovery: services.discovery,
+        capture: services.capture,
+        onActivate: { [weak self] windowID in
+            self?.activateHiddenItem(windowID)
+        }
+    )
     private var autoCollapseWorkItem: DispatchWorkItem?
     private var revealWorkItem: DispatchWorkItem?
     private var geometryRefreshWorkItem: DispatchWorkItem?
@@ -34,12 +39,14 @@ final class StatusSectionController: NSObject {
     init(
         preferencesStore: PreferencesStore = .shared,
         profileStore: ProfileStore = .shared,
+        services: MenuBarServices,
         openSettings: @escaping () -> Void,
         openDiagnostics: @escaping () -> Void,
         openOnboarding: @escaping () -> Void
     ) {
         self.preferencesStore = preferencesStore
         self.profileStore = profileStore
+        self.services = services
         self.openSettings = openSettings
         self.openDiagnostics = openDiagnostics
         self.openOnboarding = openOnboarding
@@ -59,16 +66,16 @@ final class StatusSectionController: NSObject {
         configureMenu()
         bindConfig()
         applyCurrentConfiguration()
-        HiddenMenuBarTelemetry.menuBar.info("Status items configured")
+        record("status_items_configured")
     }
 
     func toggle() {
         guard Date().timeIntervalSince(lastToggleAt) >= 0.2 else {
-            HiddenMenuBarTelemetry.menuBar.debug("Toggle ignored by debounce")
+            record("toggle_ignored", level: .debug, fields: ["reason": "debounce"])
             return
         }
         lastToggleAt = Date()
-        HiddenMenuBarTelemetry.menuBar.info("Toggle requested")
+        record("toggle_requested")
         perform(stateMachine.handle(.toggleRequested))
     }
 
@@ -79,7 +86,7 @@ final class StatusSectionController: NSObject {
         let screen = revealTargetScreen()
         if shouldRevealBelowMenuBar(on: screen) {
             guard Date().timeIntervalSince(lastToggleAt) >= 0.2 else {
-                HiddenMenuBarTelemetry.menuBar.debug("Reveal ignored by debounce")
+                record("reveal_ignored", level: .debug, fields: ["reason": "debounce"])
                 return
             }
             lastToggleAt = Date()
@@ -95,7 +102,7 @@ final class StatusSectionController: NSObject {
 
     private func applyExpandedState() {
         autoCollapseWorkItem?.cancel()
-        HiddenMenuBarTelemetry.menuBar.info("Expanding menu bar section")
+        record("section_expanding")
         applyExpandedLengths()
         updateToggleAppearance()
         configureMenu()
@@ -123,7 +130,7 @@ final class StatusSectionController: NSObject {
         )
         preferencesStore.recordMarkerOrder(valid: isValid)
         guard isValid else {
-            HiddenMenuBarTelemetry.menuBar.warning("Collapse rejected by invalid marker order")
+            record("collapse_rejected", level: .warning, fields: ["reason": "invalid_marker_order"])
             perform(stateMachine.handle(.collapseRejected(.invalidMarkerOrder)))
             return false
         }
@@ -141,7 +148,7 @@ final class StatusSectionController: NSObject {
             visibleFrameMaxX: visibleFrameMaxX,
             primaryMinX: primaryX
         ) else {
-            HiddenMenuBarTelemetry.menuBar.warning("Collapse rejected by unreadable geometry")
+            record("collapse_rejected", level: .warning, fields: ["reason": "geometry_unreadable"])
             preferencesStore.recordGeometryReadable(false, reason: "geometry_unreadable")
             perform(stateMachine.handle(.collapseRejected(.unreadableGeometry)))
             return false
@@ -167,9 +174,9 @@ final class StatusSectionController: NSObject {
     private func applyCollapsedState(_ plan: MenuBarCollapsePlan) {
         autoCollapseWorkItem?.cancel()
         if plan.useCompactFallback {
-            HiddenMenuBarTelemetry.menuBar.info("Keeping failed notch spacer compact")
+            record("compact_notch_fallback_applied")
         } else {
-            HiddenMenuBarTelemetry.menuBar.info("Collapsing menu bar section")
+            record("section_collapsing")
         }
         primarySeparatorItem.length = CGFloat(plan.primaryLength)
         secondarySeparatorItem.length = CGFloat(plan.secondaryLength)
@@ -198,14 +205,16 @@ final class StatusSectionController: NSObject {
             }
             self.preferencesStore.recordCollapseHidItems(scan.anyItemHiddenPastEdge)
             if !scan.anyItemHiddenPastEdge {
-                HiddenMenuBarTelemetry.menuBar.warning(
-                    "Collapse did not push any item off the visible edge (notch=\(scan.hasNotch))"
+                self.record(
+                    "collapse_verification_failed",
+                    level: .warning,
+                    fields: ["notch": String(scan.hasNotch)]
                 )
                 if self.shouldRevealBelowMenuBar(on: target) {
                     if let target {
                         self.compactFallbackDisplayIDs.insert(target.displayID)
                     }
-                    HiddenMenuBarTelemetry.menuBar.info("Releasing ineffective spacer for below-menu-bar reveal")
+                    self.record("ineffective_spacer_released")
                     self.applyExpandedLengths()
                     self.preferencesStore.recordGeometrySnapshot(self.currentGeometrySnapshot())
                 }
@@ -259,42 +268,53 @@ final class StatusSectionController: NSObject {
                     self.openIceBar(on: self.revealTargetScreen(), retryCount: retryCount + 1)
                 }
             } else {
-                HiddenMenuBarTelemetry.menuBar.warning("Reveal deferred: status item geometry is not ready")
+                record("reveal_deferred", level: .warning, fields: ["reason": "anchor_not_ready"])
             }
             return
         }
-        HiddenMenuBarTelemetry.menuBar.info("Opening below-menu-bar reveal panel")
+        record("reveal_panel_opening")
         iceBar.toggle(near: anchor, on: screen)
     }
 
-    /// Activate an item chosen in the IceBar. With the experimental mover enabled,
-    /// move it into the visible section so it can be clicked; otherwise fall back
-    /// to expanding the bar (safe, always works).
+    /// Activate an item chosen in the IceBar through the injected owner. The live
+    /// owner preserves the v0.1 behavior: opt-in placement into the visible lane,
+    /// otherwise expanding the bar as the fail-closed fallback.
     private func activateHiddenItem(_ windowID: CGWindowID) {
-        let movementEnabled = preferencesStore.config.isExperimentalItemMovementEnabled
-        guard movementEnabled else {
+        guard
+            let screen = revealTargetScreen(),
+            let toggleWindowID = toggleItem.button?.window.map({ CGWindowID($0.windowNumber) })
+        else {
+            record("item_activation_failed", level: .warning, fields: ["reason": "missing_target"])
             expand()
             return
         }
+
+        let request = MenuBarActivationRequest(
+            item: MenuBarItemHandle(windowID: windowID),
+            targetDisplay: MenuBarDisplayHandle(rawValue: screen.displayID),
+            visibleAnchor: MenuBarItemHandle(windowID: toggleWindowID)
+        )
         Task { [weak self] in
             guard let self else { return }
-            do {
-                if let toggleWindowID = self.toggleItem.button?.window.map({ CGWindowID($0.windowNumber) }) {
-                    try await MenuBarItemMover.move(
-                        windowID: windowID,
-                        to: .rightOf(targetWindowID: toggleWindowID),
-                        enabled: movementEnabled
-                    )
-                }
-            } catch {
-                HiddenMenuBarTelemetry.menuBar.error("IceBar activate move failed: \(String(describing: error))")
+            let outcome = await self.services.activation.activate(request)
+            switch outcome {
+            case .revealedForActivation:
+                self.record("item_revealed_for_activation", fields: ["window_id": String(windowID)])
+            case .permissionRequired:
+                self.record("item_activation_failed", level: .warning, fields: ["reason": "permission_required"])
+                self.expand()
+            case .unsupported(let reason):
+                self.record("item_activation_fallback", level: .info, fields: ["reason": reason])
+                self.expand()
+            case .failed(let reason):
+                self.record("item_activation_failed", level: .error, fields: ["reason": reason])
                 self.expand()
             }
         }
     }
 
     func recomputeGeometry() {
-        HiddenMenuBarTelemetry.menuBar.debug("Recomputing marker geometry")
+        record("geometry_recomputing", level: .debug)
         preferencesStore.recordGeometrySnapshot(currentGeometrySnapshot())
         if toggleState == .collapsed {
             _ = collapse()
@@ -320,7 +340,7 @@ final class StatusSectionController: NSObject {
     func temporarilyRevealMarkers() {
         revealWorkItem?.cancel()
         let shouldRestoreCollapsed = (toggleState == .collapsed)
-        HiddenMenuBarTelemetry.menuBar.info("Temporarily revealing markers")
+        record("markers_temporarily_revealed")
         expand()
         openOnboarding()
 
@@ -379,7 +399,7 @@ final class StatusSectionController: NSObject {
                 item.target = self
             }
         }
-        HiddenMenuBarTelemetry.menuBar.debug("Context menu rebuilt with SwiftUI rows")
+        record("context_menu_rebuilt", level: .debug)
     }
 
     private func bindConfig() {
@@ -479,7 +499,7 @@ final class StatusSectionController: NSObject {
             return
         }
         guard !shouldPauseCollapseForInteraction() else {
-            HiddenMenuBarTelemetry.menuBar.debug("Auto-collapse delayed for pointer interaction")
+            record("auto_collapse_delayed", level: .debug, fields: ["reason": "pointer_interaction"])
             scheduleAutoCollapseRetry()
             return
         }
@@ -591,11 +611,14 @@ final class StatusSectionController: NSObject {
     }
 
     @discardableResult
-    private func scanScreen(_ screen: NSScreen?, toggleMinX: Double?) -> MenuBarItemScanner.Scan? {
+    private func scanScreen(_ screen: NSScreen?, toggleMinX: Double?) -> MenuBarDiscoverySnapshot? {
         guard let screen else {
             return nil
         }
-        let scan = MenuBarItemScanner.scan(screen: screen, toggleMinX: toggleMinX)
+        let scan = services.discovery.snapshot(
+            on: MenuBarDisplayHandle(rawValue: screen.displayID),
+            toggleMinX: toggleMinX
+        )
         lastScan = scan
         return scan
     }
@@ -669,7 +692,7 @@ final class StatusSectionController: NSObject {
 
     private func applyRepairState(_ failure: MenuBarCollapseFailure) {
         autoCollapseWorkItem?.cancel()
-        HiddenMenuBarTelemetry.menuBar.warning("Entering marker repair path: \(failure.rawValue)")
+        record("marker_repair_entered", level: .warning, fields: ["reason": failure.rawValue])
         applyExpandedLengths()
         updateToggleAppearance()
     }
@@ -689,6 +712,16 @@ final class StatusSectionController: NSObject {
                 applyRepairState(failure)
             }
         }
+    }
+
+    private func record(
+        _ name: String,
+        level: MenuBarDiagnosticLevel = .info,
+        fields: [String: String] = [:]
+    ) {
+        services.diagnostics.record(
+            MenuBarDiagnosticEvent(name: name, level: level, fields: fields)
+        )
     }
 
     @objc private func handleToggleButton(_ sender: NSStatusBarButton?) {
@@ -712,37 +745,37 @@ final class StatusSectionController: NSObject {
     }
 
     @objc private func menuExpand() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: expand")
+        record("context_menu_command", fields: ["command": "expand"])
         expand()
     }
 
     @objc private func menuCollapse() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: collapse")
+        record("context_menu_command", fields: ["command": "collapse"])
         _ = collapse()
     }
 
     @objc private func menuOpenIceBar() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: open IceBar")
+        record("context_menu_command", fields: ["command": "open_ice_bar"])
         openIceBar()
     }
 
     @objc private func menuOpenSettings() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: open settings")
+        record("context_menu_command", fields: ["command": "open_settings"])
         openSettings()
     }
 
     @objc private func menuOpenDiagnostics() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: open diagnostics")
+        record("context_menu_command", fields: ["command": "open_diagnostics"])
         openDiagnostics()
     }
 
     @objc private func menuRevealMarkers() {
-        HiddenMenuBarTelemetry.commandExecution.info("Context menu command: reveal markers")
+        record("context_menu_command", fields: ["command": "reveal_markers"])
         temporarilyRevealMarkers()
     }
 
     @objc private func menuQuit() {
-        HiddenMenuBarTelemetry.appLifecycle.info("Quit requested from context menu")
+        record("context_menu_command", fields: ["command": "quit"])
         NSApplication.shared.terminate(nil)
     }
 }
