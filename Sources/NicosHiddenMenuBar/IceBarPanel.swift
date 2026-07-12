@@ -172,7 +172,7 @@ final class IceBarModel: ObservableObject {
         )
         let captured = await capture.capture(detailed, on: display)
         guard !Task.isCancelled else { return }
-        self.usesImages = captured.contains { $0.pngData != nil }
+        self.usesImages = captured.contains { $0.image != nil }
         self.items = captured
     }
 
@@ -235,6 +235,8 @@ private struct IceBarView: View {
                             }
                             .buttonStyle(.plain)
                             .help(item.item.displayName)
+                            .accessibilityLabel(Text(item.item.displayName))
+                            .accessibilityHint(Text("Reveal this item in the menu bar"))
                         }
                     }
                     .padding(.horizontal, 2)
@@ -262,8 +264,8 @@ private struct IceBarView: View {
 
     @ViewBuilder
     private func itemLabel(_ item: MenuBarCapturedItem) -> some View {
-        if let pngData = item.pngData, let image = NSImage(data: pngData) {
-            Image(nsImage: image)
+        if let image = item.image {
+            Image(decorative: image, scale: CGFloat(item.scale))
                 .resizable()
                 .aspectRatio(contentMode: .fit)
                 .frame(height: 22)

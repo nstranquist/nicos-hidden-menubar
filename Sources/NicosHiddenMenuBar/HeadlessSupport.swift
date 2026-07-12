@@ -97,7 +97,11 @@ enum HiddenBarHeadlessSelfTest {
         ProcessInfo.processInfo.environment["NICOS_HIDDEN_MENUBAR_SELFTEST"] == "1"
     }
 
-    static func runAndExit(openWindow: @escaping () -> Void, window: @escaping () -> NSWindow?) {
+    static func runAndExit(
+        compositionReport: @escaping () -> MenuBarServiceCompositionReport,
+        openWindow: @escaping () -> Void,
+        window: @escaping () -> NSWindow?
+    ) {
         HiddenBarHeadless.installWindowParkingIfNeeded()
         Task { @MainActor in
             var steps: [HiddenBarHeadlessReport.Step] = []
@@ -106,6 +110,9 @@ enum HiddenBarHeadlessSelfTest {
             }
 
             record("launch", true, "reached applicationDidFinishLaunching")
+
+            let composition = compositionReport()
+            record("service-composition", composition.ok, composition.detail)
 
             openWindow()
             try? await Task.sleep(nanoseconds: 400_000_000)

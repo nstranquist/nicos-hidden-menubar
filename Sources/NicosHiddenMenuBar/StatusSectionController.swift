@@ -71,7 +71,7 @@ final class StatusSectionController: NSObject {
 
     func toggle() {
         guard Date().timeIntervalSince(lastToggleAt) >= 0.2 else {
-            record("toggle_ignored", level: .debug, fields: ["reason": "debounce"])
+            record("toggle_ignored", level: .debug, publicFields: ["reason": "debounce"])
             return
         }
         lastToggleAt = Date()
@@ -86,7 +86,7 @@ final class StatusSectionController: NSObject {
         let screen = revealTargetScreen()
         if shouldRevealBelowMenuBar(on: screen) {
             guard Date().timeIntervalSince(lastToggleAt) >= 0.2 else {
-                record("reveal_ignored", level: .debug, fields: ["reason": "debounce"])
+                record("reveal_ignored", level: .debug, publicFields: ["reason": "debounce"])
                 return
             }
             lastToggleAt = Date()
@@ -130,7 +130,7 @@ final class StatusSectionController: NSObject {
         )
         preferencesStore.recordMarkerOrder(valid: isValid)
         guard isValid else {
-            record("collapse_rejected", level: .warning, fields: ["reason": "invalid_marker_order"])
+            record("collapse_rejected", level: .warning, publicFields: ["reason": "invalid_marker_order"])
             perform(stateMachine.handle(.collapseRejected(.invalidMarkerOrder)))
             return false
         }
@@ -148,7 +148,7 @@ final class StatusSectionController: NSObject {
             visibleFrameMaxX: visibleFrameMaxX,
             primaryMinX: primaryX
         ) else {
-            record("collapse_rejected", level: .warning, fields: ["reason": "geometry_unreadable"])
+            record("collapse_rejected", level: .warning, publicFields: ["reason": "geometry_unreadable"])
             preferencesStore.recordGeometryReadable(false, reason: "geometry_unreadable")
             perform(stateMachine.handle(.collapseRejected(.unreadableGeometry)))
             return false
@@ -208,7 +208,7 @@ final class StatusSectionController: NSObject {
                 self.record(
                     "collapse_verification_failed",
                     level: .warning,
-                    fields: ["notch": String(scan.hasNotch)]
+                    publicFields: ["notch": String(scan.hasNotch)]
                 )
                 if self.shouldRevealBelowMenuBar(on: target) {
                     if let target {
@@ -268,7 +268,7 @@ final class StatusSectionController: NSObject {
                     self.openIceBar(on: self.revealTargetScreen(), retryCount: retryCount + 1)
                 }
             } else {
-                record("reveal_deferred", level: .warning, fields: ["reason": "anchor_not_ready"])
+                record("reveal_deferred", level: .warning, publicFields: ["reason": "anchor_not_ready"])
             }
             return
         }
@@ -284,7 +284,7 @@ final class StatusSectionController: NSObject {
             let screen = revealTargetScreen(),
             let toggleWindowID = toggleItem.button?.window.map({ CGWindowID($0.windowNumber) })
         else {
-            record("item_activation_failed", level: .warning, fields: ["reason": "missing_target"])
+            record("item_activation_failed", level: .warning, publicFields: ["reason": "missing_target"])
             expand()
             return
         }
@@ -299,15 +299,15 @@ final class StatusSectionController: NSObject {
             let outcome = await self.services.activation.activate(request)
             switch outcome {
             case .revealedForActivation:
-                self.record("item_revealed_for_activation", fields: ["window_id": String(windowID)])
+                self.record("item_revealed_for_activation", privateFields: ["window_id": String(windowID)])
             case .permissionRequired:
-                self.record("item_activation_failed", level: .warning, fields: ["reason": "permission_required"])
+                self.record("item_activation_failed", level: .warning, publicFields: ["reason": "permission_required"])
                 self.expand()
             case .unsupported(let reason):
-                self.record("item_activation_fallback", level: .info, fields: ["reason": reason])
+                self.record("item_activation_fallback", level: .info, publicFields: ["reason": reason])
                 self.expand()
             case .failed(let reason):
-                self.record("item_activation_failed", level: .error, fields: ["reason": reason])
+                self.record("item_activation_failed", level: .error, privateFields: ["reason": reason])
                 self.expand()
             }
         }
@@ -499,7 +499,7 @@ final class StatusSectionController: NSObject {
             return
         }
         guard !shouldPauseCollapseForInteraction() else {
-            record("auto_collapse_delayed", level: .debug, fields: ["reason": "pointer_interaction"])
+            record("auto_collapse_delayed", level: .debug, publicFields: ["reason": "pointer_interaction"])
             scheduleAutoCollapseRetry()
             return
         }
@@ -692,7 +692,7 @@ final class StatusSectionController: NSObject {
 
     private func applyRepairState(_ failure: MenuBarCollapseFailure) {
         autoCollapseWorkItem?.cancel()
-        record("marker_repair_entered", level: .warning, fields: ["reason": failure.rawValue])
+        record("marker_repair_entered", level: .warning, publicFields: ["reason": failure.rawValue])
         applyExpandedLengths()
         updateToggleAppearance()
     }
@@ -716,11 +716,19 @@ final class StatusSectionController: NSObject {
 
     private func record(
         _ name: String,
+        category: MenuBarDiagnosticCategory = .menuBar,
         level: MenuBarDiagnosticLevel = .info,
-        fields: [String: String] = [:]
+        publicFields: [String: String] = [:],
+        privateFields: [String: String] = [:]
     ) {
         services.diagnostics.record(
-            MenuBarDiagnosticEvent(name: name, level: level, fields: fields)
+            MenuBarDiagnosticEvent(
+                name: name,
+                category: category,
+                level: level,
+                publicFields: publicFields,
+                privateFields: privateFields
+            )
         )
     }
 
@@ -745,37 +753,37 @@ final class StatusSectionController: NSObject {
     }
 
     @objc private func menuExpand() {
-        record("context_menu_command", fields: ["command": "expand"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "expand"])
         expand()
     }
 
     @objc private func menuCollapse() {
-        record("context_menu_command", fields: ["command": "collapse"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "collapse"])
         _ = collapse()
     }
 
     @objc private func menuOpenIceBar() {
-        record("context_menu_command", fields: ["command": "open_ice_bar"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "open_ice_bar"])
         openIceBar()
     }
 
     @objc private func menuOpenSettings() {
-        record("context_menu_command", fields: ["command": "open_settings"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "open_settings"])
         openSettings()
     }
 
     @objc private func menuOpenDiagnostics() {
-        record("context_menu_command", fields: ["command": "open_diagnostics"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "open_diagnostics"])
         openDiagnostics()
     }
 
     @objc private func menuRevealMarkers() {
-        record("context_menu_command", fields: ["command": "reveal_markers"])
+        record("context_menu_command", category: .commandExecution, publicFields: ["command": "reveal_markers"])
         temporarilyRevealMarkers()
     }
 
     @objc private func menuQuit() {
-        record("context_menu_command", fields: ["command": "quit"])
+        record("context_menu_command", category: .appLifecycle, publicFields: ["command": "quit"])
         NSApplication.shared.terminate(nil)
     }
 }

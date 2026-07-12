@@ -174,6 +174,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         HiddenMenuBarTelemetry.appLifecycle.info("Application launched")
         NSApplication.shared.setActivationPolicy(.accessory)
+        let menuBarServices = MenuBarServices.live(preferencesStore: preferencesStore)
 
         // Headless launch-verify: prove the preferences window (the real
         // foregrounding path) opens without stealing focus, then exit. Skip the
@@ -181,6 +182,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         // run never disturbs the user's already-running instance or menu bar.
         if HiddenBarHeadlessSelfTest.isRequested {
             HiddenBarHeadlessSelfTest.runAndExit(
+                compositionReport: { menuBarServices.compositionReport() },
                 openWindow: { [weak self] in self?.coordinator.openPreferences() },
                 window: { [weak self] in self?.coordinator.anyManagedWindow }
             )
@@ -192,7 +194,6 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
         bridge.refresh(using: preferencesStore.config)
         preferencesStore.recordBridgeStatus(bridge.status)
 
-        let menuBarServices = MenuBarServices.live(preferencesStore: preferencesStore)
         statusController = StatusSectionController(
             preferencesStore: preferencesStore,
             profileStore: profileStore,

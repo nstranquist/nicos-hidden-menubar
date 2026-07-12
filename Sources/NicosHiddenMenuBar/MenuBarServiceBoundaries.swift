@@ -66,10 +66,17 @@ enum MenuBarActivationOutcome: Equatable, Sendable {
     case failed(reason: String)
 }
 
-struct MenuBarCapturedItem: Equatable, Sendable {
+struct MenuBarCapturedItem: Sendable {
     var item: MenuBarDiscoveredItem
-    var pngData: Data?
+    var image: CGImage?
     var scale: Double
+}
+
+enum MenuBarDiagnosticCategory: String, Equatable, Sendable {
+    case appLifecycle
+    case menuBar
+    case windowing
+    case commandExecution
 }
 
 enum MenuBarDiagnosticLevel: String, Equatable, Sendable {
@@ -81,17 +88,48 @@ enum MenuBarDiagnosticLevel: String, Equatable, Sendable {
 
 struct MenuBarDiagnosticEvent: Equatable, Sendable {
     var name: String
+    var category: MenuBarDiagnosticCategory
     var level: MenuBarDiagnosticLevel
-    var fields: [String: String]
+    var publicFields: [String: String]
+    var privateFields: [String: String]
 
     init(
         name: String,
+        category: MenuBarDiagnosticCategory = .menuBar,
         level: MenuBarDiagnosticLevel = .info,
-        fields: [String: String] = [:]
+        publicFields: [String: String] = [:],
+        privateFields: [String: String] = [:]
     ) {
         self.name = name
+        self.category = category
         self.level = level
-        self.fields = fields
+        self.publicFields = publicFields
+        self.privateFields = privateFields
+    }
+}
+
+struct MenuBarDiagnosticRenderedEvent: Equatable, Sendable {
+    var category: MenuBarDiagnosticCategory
+    var name: String
+    var publicFields: String
+    var privateFields: String
+}
+
+struct MenuBarServiceCompositionReport: Equatable, Sendable {
+    var ownerTypes: [String: String]
+    var usesExpectedLiveOwners: Bool
+    var activationUsesRegisteredPlacement: Bool
+
+    var ok: Bool {
+        usesExpectedLiveOwners && activationUsesRegisteredPlacement
+    }
+
+    var detail: String {
+        let owners = ownerTypes
+            .sorted { $0.key < $1.key }
+            .map { "\($0.key)=\($0.value)" }
+            .joined(separator: " ")
+        return "liveOwners=\(usesExpectedLiveOwners) sharedPlacement=\(activationUsesRegisteredPlacement) \(owners)"
     }
 }
 
