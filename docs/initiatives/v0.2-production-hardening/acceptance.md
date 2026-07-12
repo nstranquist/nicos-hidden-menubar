@@ -64,14 +64,17 @@ an unknown acceptance ID.
 
 ## Slice 1 evidence
 
-- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 51 passing
+- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 59 passing
   package tests.
 - `ARC-001-B`: the application composition root injects distinct live discovery,
-  placement, activation, capture, and diagnostics owners. Four boundary tests
-  prove discovery/capture routing, activation-to-placement delegation, disabled
-  movement fallback, and typed failure propagation.
-- Runtime parity: the optimized app passed the headless launch, settings-window,
-  and no-foreground smoke on 2026-07-12.
+  placement, activation, capture, and diagnostics owners. Twelve boundary tests
+  prove exact live-owner composition and shared placement identity, single-pass
+  discovery, direct image transport, diagnostic category/privacy preservation,
+  discovery/capture routing, activation-to-placement delegation, fail-closed
+  movement, and typed live-adapter failures.
+- Runtime parity: the optimized app constructed and validated that same live
+  service graph before passing the headless launch, settings-window,
+  screenshot, and no-foreground smoke on 2026-07-12.
 - The live activation owner intentionally preserves v0.1 behavior: it reveals
   an item into the visible lane for a subsequent click. Direct activation
   remains owned by `ACT-001`; ARC-001 does not claim it is complete.

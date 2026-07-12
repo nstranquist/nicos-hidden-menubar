@@ -32,6 +32,10 @@ requirements:
         ref: git:b735e93ead311bb5b8838d045f3131ac57f55247
         observed_at: 2026-07-12
       - acceptance_id: ARC-001-B
+        kind: commit
+        ref: git:20b6f744aee8b6ec62c85e3f003a03beba2bd757
+        observed_at: 2026-07-12
+      - acceptance_id: ARC-001-B
         kind: test
         ref: file:docs/initiatives/v0.2-production-hardening/receipts/ARC-001.json
         observed_at: 2026-07-12

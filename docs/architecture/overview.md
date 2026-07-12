@@ -14,15 +14,15 @@ inline reveal or a below-menu-bar panel. It does not use a network service.
 | Section state | pure expanded/collapsed transitions and typed effects | `MenuBarStateMachine` |
 | AppKit section adapter | geometry inputs, status items, menus, effect execution | `StatusSectionController` |
 | Geometry | pure ordering, width, notch fallback predicates | `MarkerGeometry` |
-| Discovery | enumerate real menu-item windows and frames | injected `LiveMenuBarDiscoveryService` over `MenuBarItemScanner` + `MenuBarBridging` |
+| Discovery | enumerate real menu-item windows and frames once per consistent snapshot | injected `LiveMenuBarDiscoveryService` over `MenuBarItemScanner` + `MenuBarBridging` |
 | Item identity | owner, title, display label | `MenuBarItemInfo` |
 | Item movement | opt-in synthesized Command-drag | injected `LiveMenuBarPlacementService` over `MenuBarItemMover` |
 | Reveal-for-activation | safe visible-lane routing and fallback | injected `LiveMenuBarActivationService` |
 | Reveal panel | layout, search, capture lifecycle | `IceBarPanel` + injected-owner `IceBarModel` |
-| Image capture | ScreenCaptureKit snapshots | injected `LiveMenuBarCaptureService` over `MenuBarItemImageCapture` |
+| Image capture | ScreenCaptureKit snapshots with direct `CGImage` ownership | injected `LiveMenuBarCaptureService` over `MenuBarItemImageCapture` |
 | Configuration | validation and atomic JSON persistence | `PreferencesStore` |
 | Service contracts | discovery, placement, activation, capture, diagnostics | `MenuBarServiceBoundaries` protocols |
-| Diagnostics | structured local events plus permission/geometry health | injected `LiveMenuBarDiagnosticsRecorder` + `PreferencesStore` + views |
+| Diagnostics | categorized local events with explicit public/private fields plus permission/geometry health | injected `LiveMenuBarDiagnosticsRecorder` + `PreferencesStore` + views |
 | Display changes | debounced macOS notifications | `ScreenObserver` |
 
 ## Current data flow
@@ -69,6 +69,11 @@ The state reducer and live service owners are extracted and injected. The
 activation owner currently preserves v0.1 reveal-for-click behavior rather than
 claiming direct activation; `ACT-001` owns the stronger direct activation,
 permission outcome, retry, and recovery contract.
+
+The headless self-test constructs the production service graph before its early
+exit and validates the concrete owners plus activation's shared placement-owner
+identity. This proves composition wiring, not hardware behavior; the later
+placement, activation, capture, and display requirements retain those claims.
 
 ## Target boundaries
 

@@ -5,8 +5,10 @@
 The v0.1 suite covers configuration, migration/import, geometry predicates,
 scanner summarization, bridge behavior, first-party title rules, item candidate
 filtering, layout calculations, exit-code shapes, ARC-001 pure section-state
-transitions, injected discovery/capture routing, activation-to-placement
-delegation, disabled-movement fallback, and typed placement failure propagation.
+transitions, exact live-owner composition, shared placement-owner identity,
+single-pass discovery, direct image transport, categorized diagnostic privacy,
+injected discovery/capture routing, activation-to-placement delegation,
+disabled-movement fallback, and typed live-placement failure propagation.
 
 ## Required v0.2 coverage
 

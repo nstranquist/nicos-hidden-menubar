@@ -27,7 +27,10 @@ or mark a requirement verified.
 ## Current state
 
 `ARC-001` is verified: the pure state machine and all five concrete service
-owners are extracted, injected, and covered by package plus headless-launch
-evidence. `DOC-001` is implemented and `TEST-001` is accepted. Later identity,
-activation, placement, display, capture, performance, and release requirements
-remain proposed; v0.1 observations are baseline only for those contracts.
+owners are extracted, injected, and covered by package plus live-composition
+headless evidence. Capture passes `CGImage` values without a PNG round trip,
+diagnostics preserve category and public/private field boundaries, and discovery
+builds each snapshot from one window-server enumeration. `DOC-001` is
+implemented and `TEST-001` is accepted. Later identity, activation, placement,
+display, capture, performance, and release requirements remain proposed; v0.1
+observations are baseline only for those contracts.

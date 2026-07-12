@@ -5,7 +5,8 @@
   "implementation": {
     "commits": [
       "722da6c201e940d1a9acd0841422a9af925f7a03",
-      "b735e93ead311bb5b8838d045f3131ac57f55247"
+      "b735e93ead311bb5b8838d045f3131ac57f55247",
+      "20b6f744aee8b6ec62c85e3f003a03beba2bd757"
     ],
     "scope": [
       "pure state and input model",
@@ -13,7 +14,10 @@
       "AppKit controller adapter",
       "service boundary protocols",
       "concrete discovery, placement, activation, capture, and diagnostics owners",
-      "application composition-root and reveal-model injection"
+      "application composition-root and reveal-model injection",
+      "live composition self-test with shared placement-owner identity",
+      "single-enumeration discovery and direct CGImage capture transport",
+      "categorized diagnostics with public and private field boundaries"
     ]
   },
   "checks": [
@@ -21,20 +25,20 @@
       "acceptance_id": "ARC-001-A",
       "command": "swift test",
       "status": "passed",
-      "result": "51 tests passed, including five testARC001 state-machine tests"
+      "result": "59 tests passed, including five testARC001 state-machine tests"
     },
     {
       "acceptance_id": "ARC-001-B",
       "command": "swift test",
       "status": "passed",
-      "result": "four testARC001B tests passed for owner delegation, fail-closed movement, typed failure, and injected reveal discovery/capture"
+      "result": "12 testARC001B tests passed for exact live composition, shared placement identity, single-pass discovery, direct image transport, diagnostic privacy, owner delegation, fail-closed movement, typed live-adapter failures, and injected reveal discovery/capture"
     },
     {
       "acceptance_id": "ARC-001-B",
       "command": "make headless-smoke",
       "status": "passed",
-      "result": "release composition root launched, opened settings, captured a screenshot, and remained out of the foreground",
-      "source_report": ".local/headless-smoke/20260712-163804/report.json"
+      "result": "release composition root constructed and validated all five live owners plus shared activation-to-placement identity, launched, opened settings, captured a screenshot, and remained out of the foreground",
+      "source_report": ".local/headless-smoke/20260712-165410/report.json"
     }
   ],
   "incomplete_acceptance": []
