@@ -132,7 +132,7 @@ enum HiddenBarHeadlessSelfTest {
                let shotPath = ProcessInfo.processInfo.environment["NICOS_HIDDEN_MENUBAR_SELFTEST_SCREENSHOT"],
                !shotPath.isEmpty {
                 let shot = captureWindow(win, to: shotPath)
-                record("window-screenshot", shot.ok, shot.detail, skipped: !shot.ok)
+                record("window-screenshot", shot.ok, shot.detail)
             }
 
             let ok = steps.allSatisfy { $0.ok || $0.skipped }
@@ -160,16 +160,17 @@ enum HiddenBarHeadlessSelfTest {
     /// the window is parked off-screen and never picks up the user's desktop.
     private static func captureWindow(_ window: NSWindow, to path: String) -> (ok: Bool, detail: String) {
         guard window.windowNumber > 0 else { return (false, "window not ordered in") }
-        let windowID = CGWindowID(window.windowNumber)
-        guard let cgImage = CGWindowListCreateImage(
-            .null,
-            .optionIncludingWindow,
-            windowID,
-            [.boundsIgnoreFraming, .bestResolution]
-        ) else {
-            return (false, "CGWindowListCreateImage returned nil")
+        guard let contentView = window.contentView else {
+            return (false, "window has no content view")
         }
-        let rep = NSBitmapImageRep(cgImage: cgImage)
+        let bounds = contentView.bounds
+        guard bounds.width > 0, bounds.height > 0 else {
+            return (false, "window content has empty bounds")
+        }
+        guard let rep = contentView.bitmapImageRepForCachingDisplay(in: bounds) else {
+            return (false, "could not allocate window bitmap")
+        }
+        contentView.cacheDisplay(in: bounds, to: rep)
         guard let data = rep.representation(using: .png, properties: [:]) else {
             return (false, "png encode failed")
         }
