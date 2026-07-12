@@ -34,7 +34,7 @@
       "command": "make headless-smoke",
       "status": "passed",
       "result": "release composition root launched, opened settings, captured a screenshot, and remained out of the foreground",
-      "source_report": ".local/headless-smoke/20260712-163255/report.json"
+      "source_report": ".local/headless-smoke/20260712-163804/report.json"
     }
   ],
   "incomplete_acceptance": []
