@@ -6,7 +6,8 @@
     "commits": [
       "722da6c201e940d1a9acd0841422a9af925f7a03",
       "b735e93ead311bb5b8838d045f3131ac57f55247",
-      "20b6f744aee8b6ec62c85e3f003a03beba2bd757"
+      "20b6f744aee8b6ec62c85e3f003a03beba2bd757",
+      "c06577cb4778ab8cde0366d2409e23df0eb55af6"
     ],
     "scope": [
       "pure state and input model",
@@ -37,8 +38,8 @@
       "acceptance_id": "ARC-001-B",
       "command": "make headless-smoke",
       "status": "passed",
-      "result": "release composition root constructed and validated all five live owners plus shared activation-to-placement identity, launched, opened settings, captured a screenshot, and remained out of the foreground",
-      "source_report": ".local/headless-smoke/20260712-165410/report.json"
+      "result": "release composition root constructed and validated all five live owners plus shared activation-to-placement identity, launched, opened settings, captured a required permission-free screenshot, and remained out of the foreground",
+      "source_report": ".local/headless-smoke/20260712-171052/report.json"
     }
   ],
   "incomplete_acceptance": []
