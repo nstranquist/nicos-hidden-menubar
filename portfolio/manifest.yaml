@@ -1,0 +1,12 @@
+schema_version: 1
+product_id: product.nicos-hidden-menubar
+visibility: internal
+reviewed: true
+assets:
+    - path: docs/assets/preferences-window.png
+      kind: screenshot
+      alt: Nicos Hidden Menubar preferences window
+      caption: Privacy-reviewed macOS preferences UI captured by the native headless smoke.
+case_study:
+    enabled: false
+    evidence: []
