@@ -4,10 +4,14 @@ A native macOS menu-bar organizer for hiding the status items you do not need
 all the time. It is local-first, has no account or network service, and is built
 with Swift, AppKit, and SwiftUI.
 
+<img src="assets/brand/nicos-hidden-menubar.svg" width="96" height="96" alt="Nicos Hidden Bar application icon">
+
 The app provides three regions—visible, hidden, and optionally always hidden—
 with a compact chevron in the menu bar to reveal or collapse them. A searchable
 floating panel provides a notch-safe way to reach hidden items on modern
 MacBooks.
+
+![Nicos Hidden Bar settings showing reveal, permission, auto-collapse, and shortcut controls](docs/assets/preferences-window.png)
 
 ## Highlights
 
@@ -31,7 +35,7 @@ MacBooks.
 ## Install from source
 
 ```bash
-git clone git@github.com:nstranquist/nicos-hidden-menubar.git
+git clone https://github.com/nstranquist/nicos-hidden-menubar.git
 cd nicos-hidden-menubar
 make install
 ```
@@ -110,6 +114,10 @@ Validate their links and evidence contract with `make docs-check`.
 The headless smoke opens and captures the real settings window off-screen while
 asserting that the app never steals focus. Reports and screenshots are written
 under `.local/headless-smoke/` and are ignored by Git.
+
+Run `make verify-publication && make headless-smoke` before release. The
+reviewed repository screenshot above is copied from that smoke output and
+contains no account, menu-bar, configuration, or other private user data.
 
 ## Architecture and tradeoffs
 
