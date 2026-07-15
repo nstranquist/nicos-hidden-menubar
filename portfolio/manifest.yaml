@@ -7,6 +7,14 @@ assets:
       kind: screenshot
       alt: Nicos Hidden Menubar preferences window
       caption: Privacy-reviewed macOS preferences UI captured by the native headless smoke.
+    - path: assets/brand/nicos-hidden-menubar.svg
+      kind: logo
+      alt: Nicos Hidden Bar application icon
+      provenance: authored-svg
+      copyright_owner: Nico Stranquist
+      generator: catalog-brand-svg/v2
+      concept: hidden-menu
+      score: 100
 case_study:
     enabled: false
     evidence: []
