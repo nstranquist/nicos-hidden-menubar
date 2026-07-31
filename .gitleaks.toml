@@ -1,0 +1,10 @@
+[extend]
+useDefault = true
+
+[allowlist]
+description = "Ignored generated output and local analysis state"
+paths = [
+  '''(^|/)\.build/''',
+  '''(^|/)\.local/''',
+  '''(^|/)\.gitnexus/''',
+]
