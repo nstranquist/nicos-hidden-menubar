@@ -30,7 +30,7 @@ final class MenuBarItemScannerTests: XCTestCase {
     }
 
     func testAnyItemHiddenPastEdgeWhenHideableItemPushedBeyondVisibleMaxX() {
-        // A collapsed spacer shoved a hideable item out to x=1500, past visibleMaxX=1440.
+        // Explicit placement parked an item at x=1500, past visibleMaxX=1440.
         let scan = MenuBarItemScanner.summarize(
             items: [item(1, minX: 1500), item(2, minX: 200)],
             toggleMinX: 1450,

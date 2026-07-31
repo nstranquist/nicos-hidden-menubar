@@ -5,64 +5,116 @@ import XCTest
 
 @MainActor
 final class MenuBarServiceBoundaryTests: XCTestCase {
-    func testARC001BActivationDelegatesToPlacementOwner() async {
+    func testACT001InPlaceActivationOpensMenuWithoutPlacement() async {
+        var opened: CGWindowID?
         let placement = RecordingPlacementService()
         let activation = LiveMenuBarActivationService(
             placement: placement,
-            isMovementEnabled: { true }
-        )
-        let request = activationRequest()
-
-        let outcome = await activation.activate(request)
-
-        XCTAssertEqual(outcome, .revealedForActivation)
-        XCTAssertEqual(
-            placement.requests,
-            [
-                MenuBarPlacementRequest(
-                    item: request.item,
-                    targetDisplay: request.targetDisplay,
-                    desiredLane: .visible,
-                    anchor: .rightOf(request.visibleAnchor)
-                ),
-            ]
-        )
-    }
-
-    func testARC001BActivationFailsClosedWhenMovementIsDisabled() async {
-        let placement = RecordingPlacementService()
-        let activation = LiveMenuBarActivationService(
-            placement: placement,
-            isMovementEnabled: { false }
+            isMovementEnabled: { false },
+            openMenu: { opened = $0 },
+            accessibilityGranted: { true }
         )
 
-        let outcome = await activation.activate(activationRequest())
+        let outcome = await activation.activate(activationRequest(preferInPlace: true))
 
-        XCTAssertEqual(outcome, .unsupported(reason: "experimental_item_movement_disabled"))
+        XCTAssertEqual(outcome, .activated)
+        XCTAssertEqual(opened, 7)
         XCTAssertTrue(placement.requests.isEmpty)
     }
 
-    func testARC001BActivationReturnsTypedPlacementFailure() async {
-        let placement = RecordingPlacementService(error: MenuBarPlacementError.targetUnavailable)
+    func testACT001PermissionRequiredIsExplicit() async {
+        let placement = RecordingPlacementService()
         let activation = LiveMenuBarActivationService(
             placement: placement,
-            isMovementEnabled: { true }
+            isMovementEnabled: { false },
+            openMenu: { _ in XCTFail("should not open without permission") },
+            accessibilityGranted: { false }
         )
 
-        let outcome = await activation.activate(activationRequest())
+        let outcome = await activation.activate(activationRequest(preferInPlace: true))
 
-        XCTAssertEqual(outcome, .failed(reason: "targetUnavailable"))
+        XCTAssertEqual(outcome, .permissionRequired(permission: "accessibility"))
+        XCTAssertTrue(placement.requests.isEmpty)
+    }
+
+    func testACT001MovementPathPlacesThenRevealsWhenOpenSkipped() async {
+        let placement = RecordingPlacementService()
+        let activation = LiveMenuBarActivationService(
+            placement: placement,
+            isMovementEnabled: { true },
+            openMenu: { _ in throw MenuBarItemActivator.ActivateError.missingFrame },
+            accessibilityGranted: { true }
+        )
+        // preferInPlace false forces placement-first path used when relocate requested.
+        let outcome = await activation.activate(activationRequest(preferInPlace: false))
+
+        XCTAssertEqual(outcome, .revealedForActivation)
+        XCTAssertEqual(placement.requests.count, 1)
+        XCTAssertEqual(placement.requests.first?.desiredLane, .visible)
+    }
+
+    func testACT001InPlaceFailureFallsBackToPlacementWhenMovementEnabled() async {
+        let placement = RecordingPlacementService()
+        let activation = LiveMenuBarActivationService(
+            placement: placement,
+            isMovementEnabled: { true },
+            openMenu: { _ in throw MenuBarItemActivator.ActivateError.missingFrame },
+            accessibilityGranted: { true }
+        )
+
+        let outcome = await activation.activate(activationRequest(preferInPlace: true))
+
+        XCTAssertEqual(outcome, .revealedForActivation)
         XCTAssertEqual(placement.requests.count, 1)
     }
 
-    func testARC001BActivationMapsTypedImmovableFailure() async {
+    func testACT001UnsupportedWhenMovementDisabledAndOpenFails() async {
+        let placement = RecordingPlacementService()
+        let activation = LiveMenuBarActivationService(
+            placement: placement,
+            isMovementEnabled: { false },
+            openMenu: { _ in throw MenuBarItemActivator.ActivateError.missingItem },
+            accessibilityGranted: { true }
+        )
+
+        let outcome = await activation.activate(activationRequest(preferInPlace: true))
+
+        XCTAssertEqual(outcome, .unsupported(reason: "item_missing"))
+        XCTAssertTrue(placement.requests.isEmpty)
+    }
+
+    func testACT001OffScreenItemNeedsRelocateEvenWhenMovementDisabled() {
+        let off = MenuBarWindowInfo(
+            windowID: 9,
+            frame: CGRect(x: 700, y: 0, width: 24, height: 22),
+            ownerPID: 0,
+            ownerName: nil,
+            title: nil,
+            isOnScreen: false
+        )
+        XCTAssertTrue(LiveMenuBarActivationService.itemNeedsRelocateForActivation(off))
+        let on = MenuBarWindowInfo(
+            windowID: 10,
+            frame: CGRect(x: 1_200, y: 0, width: 24, height: 22),
+            ownerPID: 42,
+            ownerName: "App",
+            title: "Item",
+            isOnScreen: true
+        )
+        XCTAssertFalse(LiveMenuBarActivationService.itemNeedsRelocateForActivation(on))
+        XCTAssertFalse(LiveMenuBarActivationService.itemNeedsRelocateForActivation(nil))
+    }
+
+    func testACT001MapsTypedImmovableFailure() async {
         let placement = RecordingPlacementService(error: MenuBarPlacementError.itemNotMovable)
         let activation = LiveMenuBarActivationService(
             placement: placement,
-            isMovementEnabled: { true }
+            isMovementEnabled: { true },
+            openMenu: { _ in throw MenuBarItemActivator.ActivateError.missingFrame },
+            accessibilityGranted: { true }
         )
 
-        let outcome = await activation.activate(activationRequest())
+        let outcome = await activation.activate(activationRequest(preferInPlace: false))
 
         XCTAssertEqual(outcome, .unsupported(reason: "item_not_movable"))
     }
@@ -144,15 +196,30 @@ final class MenuBarServiceBoundaryTests: XCTestCase {
         let visible = discoveredItem(windowID: 9, ownerPID: 2, minX: 900)
         let discovery = RecordingDiscoveryService(items: [hidden, ownControl, visible])
         let capture = RecordingCaptureService(image: makeTestImage())
-        let model = IceBarModel(discovery: discovery, capture: capture)
+        let model = RevealPanelModel(discovery: discovery, capture: capture)
 
-        await model.reload(on: display, leftOfX: 700, excludingOwnerPID: 42)
+        let bounds = MenuBarLaneBounds(
+            toggleX: 700,
+            primaryX: 0,
+            secondaryX: nil,
+            alwaysHiddenEnabled: false,
+            screenMinX: 0,
+            screenMaxX: 1_440
+        )
+        await model.reload(on: display, laneBounds: bounds, parkedWindowIDs: [], excludingOwnerPID: 42)
 
         XCTAssertEqual(discovery.requestedDisplays, [display])
         XCTAssertEqual(capture.requests.map { $0.items.map(\.handle.windowID) }, [[7]])
         XCTAssertEqual(capture.requests.map(\.display), [display])
         XCTAssertEqual(model.items.map(\.item.handle.windowID), [7])
         XCTAssertTrue(model.usesImages)
+
+        model.prepareForHide()
+
+        XCTAssertEqual(model.items.map(\.item.handle.windowID), [7])
+        XCTAssertNil(model.items.first?.image)
+        XCTAssertTrue(model.items.allSatisfy(\.isPlaceholder))
+        XCTAssertFalse(model.usesImages)
     }
 
     func testARC001BDiscoveryBuildsOneConsistentSnapshot() {
@@ -173,6 +240,8 @@ final class MenuBarServiceBoundaryTests: XCTestCase {
         XCTAssertEqual(snapshot.hideableItemCount, 1)
         XCTAssertEqual(snapshot.leftmostMinX, 100)
         XCTAssertTrue(snapshot.hasNotch)
+        // Identities assigned and distinct.
+        XCTAssertEqual(Set(snapshot.items.map(\.identity.key)).count, 2)
     }
 
     func testARC001BCaptureMergeRetainsImageWithoutSerialization() throws {
@@ -213,11 +282,12 @@ final class MenuBarServiceBoundaryTests: XCTestCase {
         XCTAssertEqual(rendered.privateFields, "window_id=42")
     }
 
-    private func activationRequest() -> MenuBarActivationRequest {
+    private func activationRequest(preferInPlace: Bool = true) -> MenuBarActivationRequest {
         MenuBarActivationRequest(
             item: MenuBarItemHandle(windowID: 7),
             targetDisplay: MenuBarDisplayHandle(rawValue: 3),
-            visibleAnchor: MenuBarItemHandle(windowID: 11)
+            visibleAnchor: MenuBarItemHandle(windowID: 11),
+            preferInPlace: preferInPlace
         )
     }
 
@@ -235,11 +305,13 @@ final class MenuBarServiceBoundaryTests: XCTestCase {
         ownerPID: Int32,
         minX: Double
     ) -> MenuBarDiscoveredItem {
-        MenuBarDiscoveredItem(
-            handle: MenuBarItemHandle(windowID: windowID),
+        let identity = MenuBarItemIdentity(namespace: "owner.\(ownerPID)", title: "Item \(windowID)")
+        return MenuBarDiscoveredItem(
+            handle: MenuBarItemHandle(windowID: windowID, identity: identity),
+            identity: identity,
             ownerPID: ownerPID,
             ownerName: "Owner \(ownerPID)",
-            title: "",
+            title: "Item \(windowID)",
             displayName: "Item \(windowID)",
             frame: CGRect(x: minX, y: 0, width: 24, height: 24)
         )
@@ -333,7 +405,7 @@ private final class RecordingCaptureService: MenuBarItemCapturing {
     ) async -> [MenuBarCapturedItem] {
         requests.append(Request(items: items, display: display))
         return items.map { item in
-            MenuBarCapturedItem(item: item, image: image, scale: 2)
+            MenuBarCapturedItem(item: item, image: image, scale: 2, isPlaceholder: image == nil)
         }
     }
 }
