@@ -27,6 +27,7 @@ than silently changing its rationale.
 - [`decisions/0002-item-manager-replaces-spacer.md`](decisions/0002-item-manager-replaces-spacer.md)
 - [`decisions/0003-stable-item-identity.md`](decisions/0003-stable-item-identity.md)
 - [`decisions/0004-panel-capture-and-cache.md`](decisions/0004-panel-capture-and-cache.md)
+- [`decisions/0005-verified-spacer-primary.md`](decisions/0005-verified-spacer-primary.md)
 
 ## Active initiative
 
@@ -42,6 +43,7 @@ than silently changing its rationale.
 - [`quality/compatibility-matrix.md`](quality/compatibility-matrix.md)
 - [`quality/performance-budgets.md`](quality/performance-budgets.md)
 - [`releases/v0.1-known-gaps.md`](releases/v0.1-known-gaps.md)
+- [`releases/v0.2-progress.md`](releases/v0.2-progress.md)
 - [`releases/release-checklist.md`](releases/release-checklist.md)
 
 ## Lifecycle rules

@@ -1,0 +1,53 @@
+{
+  "schema_version": 1,
+  "receipt_id": "LOCAL-20260731",
+  "observed_at": "2026-07-31",
+  "environment": {
+    "machine": "MacBookPro18,1, Apple M1 Pro, 16 GB",
+    "os_version": "macOS 15.7.7 (24G720)",
+    "display_topology": "built-in 3456x2234 Liquid Retina XDR, main, not mirrored"
+  },
+  "checks": [
+    {
+      "name": "verify-publication",
+      "command": "ndev session pressure work run --class build -- make verify-publication",
+      "status": "passed",
+      "result": "162 Swift tests passed; Go script tests, formatter ratchet, docs validation, warnings-as-errors release build, and Git-history plus working-tree gitleaks scans passed. Formatter debt remains ratcheted at 469 findings."
+    },
+    {
+      "name": "headless-smoke",
+      "command": "ndev session pressure work run --class browser -- make headless-smoke",
+      "status": "passed",
+      "result": "Real native settings window opened without foreground activation; live owner composition and screenshot checks passed.",
+      "report": ".local/headless-smoke/20260731-182516/report.json",
+      "screenshot": ".local/headless-smoke/20260731-182516/preferences-window.png"
+    },
+    {
+      "name": "release-artifact",
+      "command": "ndev session pressure work run --class build -- make release-artifact",
+      "status": "passed",
+      "result": "Versioned archive, SHA-256 checksum, and provenance receipt generated.",
+      "archive": ".local/release/NicosHiddenMenuBar-0.2.0.zip",
+      "sha256": "0b07fb62a200ac0ad482d16c0289b2b98f0c6f936761bc78e4581c509f869e0a",
+      "provenance": ".local/release/NicosHiddenMenuBar-0.2.0.provenance.json",
+      "distribution_ready": false
+    },
+    {
+      "name": "runtime-reconciliation",
+      "command": "make install && make verify-installed",
+      "status": "passed",
+      "result": "The current bundle is installed and running; the legacy launch agent is absent and its plist is archived for rollback; the old app bundle remains untouched.",
+      "installed_app": "/Applications/NicosHiddenMenuBar.app",
+      "process": "/Applications/NicosHiddenMenuBar.app/Contents/MacOS/NicosHiddenMenuBar",
+      "bundle_id": "com.nstranquist.nicos-hidden-menubar",
+      "cdhash": "d377acd3326504f8fb5b91b41c289cf7c55d3769",
+      "signing_authority": "Apple Development: developer@example.invalid (ABCDEFGHIJ)",
+      "archived_legacy_launch_agent": "~/.config/nicos-hidden-menubar/legacy-launch-agents/com.nstranquist.nicos-menubar.20260731T232300Z.plist.disabled"
+    }
+  ],
+  "limitations": [
+    "The visible five-minute performance refresh was not run because it requires explicit active-user consent for UI automation.",
+    "External-display, Control Center activation, repeated third-party movement, Screen Recording icon completion, Developer ID signing, notarization, stapling, clean-machine smoke, and public CI remain open external gates.",
+    "GitHub publication and any remote push or visibility change were intentionally not performed."
+  ]
+}

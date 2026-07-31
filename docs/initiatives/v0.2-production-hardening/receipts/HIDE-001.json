@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "requirement_id": "HIDE-001",
+  "observed_at": "2026-07-29",
+  "environment": {
+    "machine": "MacBookPro18,1, Apple M1 Pro, 16 GB",
+    "os_version": "macOS 15.7.7 (24G720)",
+    "display_topology": "built-in 3456x2234 Liquid Retina XDR, main, not mirrored"
+  },
+  "checks": [
+    {
+      "acceptance_id": "HIDE-001-A",
+      "command": "swift test",
+      "status": "passed",
+      "result": "158 package tests passed"
+    },
+    {
+      "acceptance_id": "HIDE-001-A",
+      "command": "swift test --filter 'MarkerGeometryTests|ItemIdentityTests|MenuBarStateMachineTests'",
+      "status": "passed",
+      "result": "47 targeted tests passed, including exact-ID spacer verification, Window Server backdrop classification, fail-closed sticky failure, and reducer transitions"
+    },
+    {
+      "acceptance_id": "HIDE-001-B",
+      "command": "nicoshiddenbar://expand then nicoshiddenbar://collapse, repeated three times with Window Server and unified-log observation",
+      "status": "passed",
+      "result": "Each cycle logged collapse_verification_succeeded hidden=8 mechanism=spacer. Expanded state rendered 15 layer-25 menu-extra windows. Collapsed state removed the eight hidden-lane items while two standalone third-party items and two system items remained rendered."
+    },
+    {
+      "acceptance_id": "HIDE-001-C",
+      "command": "inspect collapse failure path",
+      "status": "passed",
+      "result": "A failed spacer releases the expanded length and returns hide_unavailable without automatic third-party item movement."
+    }
+  ],
+  "limitations": [
+    "No external display was connected.",
+    "This receipt does not cover notarization, clean-machine installation, or Control Center panel activation."
+  ]
+}

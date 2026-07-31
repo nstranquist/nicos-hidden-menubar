@@ -1,17 +1,17 @@
 # Implementation plan
 
-- Status: Accepted; Slice 1 complete
+- Status: Accepted; Slices 0–4 software complete, Slices 5–6 partially complete
 - Scope source: [`requirements.yaml`](requirements.yaml)
 
 No slice starts merely because it appears here. Accept the relevant requirements
-and proposed ADRs before implementation. `ARC-001` and `TEST-001` were accepted
-on 2026-07-11 for Slice 1; later slices remain unaccepted.
+and proposed ADRs before implementation.
 
 Slice 1 is verified across `722da6c` and `b735e93`: the pure state machine,
 typed effects, controller adapter, service protocols, concrete live owners,
 composition-root injection, and reveal-model injection are implemented. The
-live activation owner preserves the safe v0.1 reveal-for-click behavior; direct
-activation remains scoped to Slice 2 and `ACT-001`.
+later identity, direct activation, placement, bounded cache, verified spacer,
+and performance work is accepted in the current working tree but cannot become
+`implemented` without commit evidence.
 
 ## Slice 0: Documentation and baseline
 
@@ -73,6 +73,12 @@ Requirements: TEST-001, DSP-001, PERF-001.
 - Run clean-machine install, login-item, permissions, upgrade, and rollback smoke.
 
 Requirements: REL-001, DOC-001.
+
+Current boundary: local CI definition, warnings-as-errors, formatter ratchet,
+docs/secret gates, artifact checksum/provenance, stable Apple Development
+dogfood signing, and 0.1→0.2 config-preserving upgrade proof exist. Developer ID
+credentials, notarization/stapling, public CI execution, and clean-machine
+permission/login-item smoke remain external gates.
 
 ## Commit policy
 

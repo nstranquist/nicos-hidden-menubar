@@ -44,7 +44,7 @@ requirements:
   - id: ITEM-001
     group: identity
     priority: must
-    state: proposed
+    state: accepted
     title: Versioned stable item identity
     statement: Repeated and image-only items resolve to distinct durable identities.
     design_ref: decisions/0003-stable-item-identity.md
@@ -55,13 +55,60 @@ requirements:
       - id: ITEM-001-B
         type: migration
         statement: Existing bundle-title policy migrates without silent loss.
-    evidence: []
+    evidence:
+      - acceptance_id: ITEM-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/ItemIdentityTests.swift
+        observed_at: 2026-07-14
+      - acceptance_id: ITEM-001-B
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/ItemIdentityTests.swift
+        observed_at: 2026-07-14
     risks: [os-metadata-drift, ambiguous-legacy-identity]
+
+  - id: HIDE-001
+    group: collapse
+    priority: must
+    state: accepted
+    title: Verified permission-free section collapse
+    statement: Collapse hides every rendered hidden-lane item while preserving visible standalone items, and any unverified transition remains expanded without automatic item movement.
+    design_ref: decisions/0005-verified-spacer-primary.md
+    acceptance:
+      - id: HIDE-001-A
+        type: automated
+        statement: Exact-ID verification excludes menu-bar chrome and rejects partial or empty hide results.
+      - id: HIDE-001-B
+        type: hardware
+        statement: Repeated collapse and restore cycles pass on the built-in notched display.
+      - id: HIDE-001-C
+        type: degraded
+        statement: Verification failure releases the spacer and does not mutate third-party item positions.
+    evidence:
+      - acceptance_id: HIDE-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/MarkerGeometryTests.swift
+        observed_at: 2026-07-29
+      - acceptance_id: HIDE-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/ItemIdentityTests.swift
+        observed_at: 2026-07-29
+      - acceptance_id: HIDE-001-B
+        kind: hardware
+        ref: file:docs/initiatives/v0.2-production-hardening/receipts/HIDE-001.json
+        observed_at: 2026-07-29
+        machine: MacBookPro18,1 Apple M1 Pro 16 GB
+        os_version: macOS 15.7.7 (24G720)
+        display_topology: built-in 3456x2234 Liquid Retina XDR main display
+      - acceptance_id: HIDE-001-C
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/MarkerGeometryTests.swift
+        observed_at: 2026-07-29
+    risks: [private-api-drift, status-item-layout-drift]
 
   - id: ACT-001
     group: activation
     priority: must
-    state: proposed
+    state: accepted
     title: Activate an item from the reveal panel
     statement: Selecting a panel item opens its menu or returns an explicit actionable outcome.
     design_ref: architecture/item-lifecycle.md#target-activation-contract
@@ -75,13 +122,21 @@ requirements:
       - id: ACT-001-C
         type: degraded
         statement: Missing permission produces an explicit repair action.
-    evidence: []
+    evidence:
+      - acceptance_id: ACT-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/MenuBarServiceBoundaryTests.swift
+        observed_at: 2026-07-14
+      - acceptance_id: ACT-001-C
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/MenuBarServiceBoundaryTests.swift
+        observed_at: 2026-07-14
     risks: [accessibility-permission, private-api-drift]
 
   - id: MOVE-001
     group: placement
     priority: must
-    state: proposed
+    state: accepted
     title: Bounded item movement and recovery
     statement: Movement waits for observed frames, retries within a fixed budget, and restores state on failure.
     design_ref: decisions/0002-item-manager-replaces-spacer.md
@@ -92,13 +147,17 @@ requirements:
       - id: MOVE-001-B
         type: hardware
         statement: Supported third-party owners pass repeated move-and-restore smoke.
-    evidence: []
+    evidence:
+      - acceptance_id: MOVE-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/PlacementEngineTests.swift
+        observed_at: 2026-07-14
     risks: [owner-latency, user-layout-mutation]
 
   - id: DSP-001
     group: displays
     priority: must
-    state: proposed
+    state: accepted
     title: Per-display placement ownership
     statement: Each display topology resolves independent live geometry and panel placement.
     design_ref: decisions/0002-item-manager-replaces-spacer.md
@@ -109,13 +168,17 @@ requirements:
       - id: DSP-001-B
         type: hardware
         statement: Built-in notch plus an external display pass the compatibility matrix.
-    evidence: []
+    evidence:
+      - acceptance_id: DSP-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/DisplayGeometryTests.swift
+        observed_at: 2026-07-29
     risks: [status-item-replica-behavior]
 
   - id: CAP-001
     group: capture
     priority: should
-    state: proposed
+    state: accepted
     title: Incremental bounded icon capture
     statement: The panel opens before capture completes and fills icons incrementally from a bounded cache.
     design_ref: decisions/0004-panel-capture-and-cache.md
@@ -126,7 +189,11 @@ requirements:
       - id: CAP-001-B
         type: performance
         statement: Warm and cold reveal meet documented latency budgets.
-    evidence: []
+    evidence:
+      - acceptance_id: CAP-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/IconCacheTests.swift
+        observed_at: 2026-07-14
     risks: [screen-recording-permission, capture-latency]
 
   - id: TEST-001
@@ -143,13 +210,17 @@ requirements:
       - id: TEST-001-B
         type: ci
         statement: Required tests run on a clean macOS CI host.
-    evidence: []
+    evidence:
+      - acceptance_id: TEST-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/MenuBarServiceBoundaryTests.swift
+        observed_at: 2026-07-29
     risks: [hardware-only-coverage]
 
   - id: PERF-001
     group: performance
     priority: must
-    state: proposed
+    state: accepted
     title: Enforced resource budgets
     statement: Idle CPU, physical memory, reveal latency, and capture cache have measurable gates.
     design_ref: quality/performance-budgets.md
@@ -160,13 +231,32 @@ requirements:
       - id: PERF-001-B
         type: hardware
         statement: Release candidate meets budgets on the baseline M1 MacBook Pro.
-    evidence: []
+    evidence:
+      - acceptance_id: PERF-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/PerformanceMetricsTests.swift
+        observed_at: 2026-07-29
+      - acceptance_id: PERF-001-A
+        kind: test
+        ref: file:Tests/NicosHiddenMenuBarTests/IconCacheTests.swift
+        observed_at: 2026-07-29
+      - acceptance_id: PERF-001-A
+        kind: performance
+        ref: file:docs/initiatives/v0.2-production-hardening/receipts/PERF-001.json
+        observed_at: 2026-07-29
+      - acceptance_id: PERF-001-B
+        kind: hardware
+        ref: file:docs/initiatives/v0.2-production-hardening/receipts/PERF-001.json
+        observed_at: 2026-07-29
+        machine: MacBookPro18,1 Apple M1 Pro 16 GB
+        os_version: macOS 15.7.7 (24G720)
+        display_topology: built-in 3456x2234 Liquid Retina XDR main display
     risks: [measurement-variance]
 
   - id: REL-001
     group: release
     priority: must
-    state: proposed
+    state: accepted
     title: Reproducible signed release pipeline
     statement: CI validates source and produces versioned release evidence; distribution uses stable signing and notarization.
     design_ref: releases/release-checklist.md

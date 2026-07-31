@@ -29,5 +29,5 @@ checks:
       command:
         - make
         - headless-smoke
-description: Native macOS menu-bar organizer with visible, hidden, and always-hidden regions; idempotent screen-aware collapse geometry; automatic below-menu-bar reveal on notched displays; adaptive multi-display panel sizing; auto-collapse profiles; global shortcut; optional preference import; local JSON config and diagnostics; and opt-in synthesized item movement.
+description: Native macOS menu-bar organizer with standalone visible items plus hidden and always-hidden regions; exact rendered-item verification for permission-free spacer collapse on notched and regular displays; a searchable below-menu-bar reveal panel; adaptive multi-display sizing; auto-collapse profiles; global shortcut; local JSON diagnostics; and opt-in synthesized item movement for explicit placement.
 portfolio_manifest: portfolio/manifest.yaml

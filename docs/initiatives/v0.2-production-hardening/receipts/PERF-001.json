@@ -1,0 +1,69 @@
+{
+  "schema_version": 1,
+  "requirement_id": "PERF-001",
+  "observed_at": "2026-07-29T22:42:14Z",
+  "environment": {
+    "machine": "MacBookPro18,1, Apple M1 Pro, 16 GB",
+    "os_version": "macOS 15.7.7 (24G720)",
+    "display_topology": "built-in 3456x2234 Liquid Retina XDR, main, not mirrored",
+    "app_path": "/Applications/NicosHiddenMenuBar.app",
+    "app_version": "0.2.0",
+    "app_executable_sha256": "f51d254f16758077802dbe287e64bde4d5214566306a7eaac3db6fdc9185ba43",
+    "source_commit": "f99ea1e3d8cac2220e36ef10b766f2457f180632",
+    "working_tree_dirty": true,
+    "signature": "Apple Development, stable local identity",
+    "accessibility_trusted": true,
+    "screen_recording_granted": false
+  },
+  "measurement": {
+    "duration_seconds": 300,
+    "interval_seconds": 5,
+    "settle_seconds": 15,
+    "requested_reveal_cycles": 12,
+    "process_sample_count": 61,
+    "reveal_observation_count": 20,
+    "process_samples_columnar": {
+      "observed_at": ["2026-07-29T22:37:14.93496Z","2026-07-29T22:37:19.939427Z","2026-07-29T22:37:24.9441Z","2026-07-29T22:37:29.948726Z","2026-07-29T22:37:34.952591Z","2026-07-29T22:37:39.95753Z","2026-07-29T22:37:44.961923Z","2026-07-29T22:37:49.966014Z","2026-07-29T22:37:54.969843Z","2026-07-29T22:37:59.974108Z","2026-07-29T22:38:04.978023Z","2026-07-29T22:38:09.982573Z","2026-07-29T22:38:14.987523Z","2026-07-29T22:38:19.990955Z","2026-07-29T22:38:24.994009Z","2026-07-29T22:38:29.998359Z","2026-07-29T22:38:35.002377Z","2026-07-29T22:38:40.006808Z","2026-07-29T22:38:45.011122Z","2026-07-29T22:38:50.015281Z","2026-07-29T22:38:55.019421Z","2026-07-29T22:39:00.023781Z","2026-07-29T22:39:05.028221Z","2026-07-29T22:39:10.032196Z","2026-07-29T22:39:15.036766Z","2026-07-29T22:39:20.040713Z","2026-07-29T22:39:25.044492Z","2026-07-29T22:39:30.048784Z","2026-07-29T22:39:35.053171Z","2026-07-29T22:39:40.057555Z","2026-07-29T22:39:45.062232Z","2026-07-29T22:39:50.066576Z","2026-07-29T22:39:55.07123Z","2026-07-29T22:40:00.075965Z","2026-07-29T22:40:05.07992Z","2026-07-29T22:40:10.084125Z","2026-07-29T22:40:15.087906Z","2026-07-29T22:40:20.092386Z","2026-07-29T22:40:25.097046Z","2026-07-29T22:40:30.10188Z","2026-07-29T22:40:35.106264Z","2026-07-29T22:40:40.110056Z","2026-07-29T22:40:45.1139Z","2026-07-29T22:40:50.117991Z","2026-07-29T22:40:55.122466Z","2026-07-29T22:41:00.126984Z","2026-07-29T22:41:05.131116Z","2026-07-29T22:41:10.135371Z","2026-07-29T22:41:15.140192Z","2026-07-29T22:41:20.14471Z","2026-07-29T22:41:25.14903Z","2026-07-29T22:41:30.153414Z","2026-07-29T22:41:35.157691Z","2026-07-29T22:41:40.161912Z","2026-07-29T22:41:45.166249Z","2026-07-29T22:41:50.170615Z","2026-07-29T22:41:55.175157Z","2026-07-29T22:42:00.179632Z","2026-07-29T22:42:05.183937Z","2026-07-29T22:42:10.188312Z","2026-07-29T22:42:14.938277Z"],
+      "cpu_percent": [0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0],
+      "rss_bytes": [68567040,68550656,68550656,68550656,68550656,68550656,68550656,68583424,68583424,68567040,68567040,68567040,68567040,71467008,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71385088,71417856,71417856,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472,71401472]
+    },
+    "reveal_samples": [
+      {"shellMilliseconds":1.4991250009188661,"contentMilliseconds":201.05675000013434,"shellItemCount":0,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":false,"observedAt":"2026-07-29T22:36:50.835Z"},
+      {"shellMilliseconds":10.404708333226154,"contentMilliseconds":75.65200000135519,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:51.569Z"},
+      {"shellMilliseconds":9.890583332889946,"contentMilliseconds":78.9347916670522,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:52.420Z"},
+      {"shellMilliseconds":10.717500001192093,"contentMilliseconds":73.01383333469857,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:52.811Z"},
+      {"shellMilliseconds":11.834375000034925,"contentMilliseconds":82.36204166678363,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:53.277Z"},
+      {"shellMilliseconds":7.446583333148737,"contentMilliseconds":117.42266666806245,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:53.711Z"},
+      {"shellMilliseconds":11.35808333492605,"contentMilliseconds":75.90866666760121,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:54.129Z"},
+      {"shellMilliseconds":8.16662499892118,"contentMilliseconds":108.68216666676744,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:54.596Z"},
+      {"shellMilliseconds":10.076874999867869,"contentMilliseconds":84.88737499828858,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:54.986Z"},
+      {"shellMilliseconds":9.455583332965034,"contentMilliseconds":79.34449999993376,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:55.537Z"},
+      {"shellMilliseconds":7.7217500002007,"contentMilliseconds":73.84608333268261,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:55.816Z"},
+      {"shellMilliseconds":8.268874998975662,"contentMilliseconds":74.01804166693182,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:56.233Z"},
+      {"shellMilliseconds":9.207625000271946,"contentMilliseconds":74.99308333353838,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:56.698Z"},
+      {"shellMilliseconds":7.531958333856892,"contentMilliseconds":83.38954166720214,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:57.097Z"},
+      {"shellMilliseconds":9.547999999995227,"contentMilliseconds":88.58787500139442,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:57.548Z"},
+      {"shellMilliseconds":7.964166665260564,"contentMilliseconds":92.18741666700225,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:57.972Z"},
+      {"shellMilliseconds":9.839083333645249,"contentMilliseconds":136.36591666727327,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:58.446Z"},
+      {"shellMilliseconds":7.399208334391005,"contentMilliseconds":134.56587500149908,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:58.899Z"},
+      {"shellMilliseconds":8.958791666373145,"contentMilliseconds":77.78120833245339,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:59.227Z"},
+      {"shellMilliseconds":6.164125001305365,"contentMilliseconds":74.42783333499392,"shellItemCount":5,"itemCount":5,"imageCount":0,"accessibilityTrusted":true,"screenRecordingGranted":false,"warm":true,"observedAt":"2026-07-29T22:36:59.769Z"}
+    ]
+  },
+  "results": {
+    "idle_cpu_average": {"observed":0,"budget":0.1,"unit":"percent","ok":true},
+    "idle_rss_maximum": {"observed":68.15625,"budget":80,"unit":"MiB","ok":true},
+    "cold_shell": {"observed":1.4991250009188661,"budget":250,"unit":"milliseconds","ok":true},
+    "cold_content": {"observed":201.05675000013434,"budget":750,"unit":"milliseconds","ok":true},
+    "warm_reveal_p95": {"observed":11.834375000034925,"budget":150,"unit":"milliseconds","ok":true},
+    "reveal_sample_sufficient": true,
+    "warm_shell_has_content": true
+  },
+  "ok": true,
+  "limitations": [
+    "The idle CPU result used one-decimal ps %cpu samples and is superseded by the cumulative CPU-time delta gate; refresh this field before release.",
+    "Screen Recording was not granted, so captured-icon completion is not represented and CAP-001-B remains open.",
+    "No external display was connected, so display reconciliation and DSP-001-B remain open.",
+    "The source working tree was dirty; the measured installed executable is bound by SHA-256 instead of a clean commit."
+  ]
+}

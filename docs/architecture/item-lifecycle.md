@@ -16,17 +16,19 @@ discover -> identify -> classify -> place -> reveal -> activate -> verify
    rediscover it in the physical bar.
 7. **Verify:** observe the resulting frame/menu state and emit diagnostics.
 
-## Current behavior
+## Current behavior (v0.2)
 
 - Discovery is window-server based and read-only.
-- Identity is currently `bundleID:title`, which is insufficient for repeated
-  image-only Control Center items.
+- Identity is versioned (`MenuBarItemIdentity`) with Control Center module
+  specialization and ordinal disambiguation for image-only peers; legacy
+  `bundleID:title` keys migrate without silent loss.
 - Lane boundaries are the app's persisted status items.
 - Inline hiding uses a spacer and is verified after reflow.
-- The panel captures icons when Screen Recording is granted and otherwise uses
-  text labels.
-- With experimental movement disabled, panel selection expands inline rather
-  than directly activating the selected item.
+- The panel opens immediately with metadata/placeholders, then fills icons from
+  a bounded identity-keyed cache when Screen Recording is granted.
+- Panel selection activates in place via synthetic click (Accessibility). Explicit
+  outcomes: activated, permission_required, unsupported, failed_recovered, or
+  revealed_for_activation when experimental movement relocates the item.
 
 ## Target activation contract
 

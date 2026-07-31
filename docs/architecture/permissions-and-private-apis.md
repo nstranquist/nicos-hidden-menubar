@@ -24,10 +24,23 @@ Private API failure MUST be treated as a supported runtime condition:
 
 ## Signing and privacy permissions
 
-Ad-hoc source builds may receive a new code identity after reinstall, causing
-macOS to request Screen Recording or Accessibility again. Distribution-quality
-releases therefore require a stable signing identity, notarization, and a
-permission regression smoke.
+**Ad-hoc** (`codesign -s -`) binds Accessibility to a one-off CDHash. Every
+`make install` re-breaks trust even when Settings still shows the app as ON.
+
+**Dogfood (default):** `make install` prefers an **Apple Development** identity
+via `scripts/codesign_app.sh` so rebuilds keep the same designated requirement.
+Grant Accessibility once per identity (`make install-stable` resets the TCC row
+and opens Privacy settings).
+
+**Distribution:** set `DEVELOPER_ID_IDENTITY` and run `make notarize` (notarytool
++ staple). Requires Apple Developer Program credentials / `NOTARYTOOL_PROFILE`.
+
+Override anytime:
+
+```bash
+CODESIGN_IDENTITY="Apple Development: you@example.com (TEAMID)" make install
+DEVELOPER_ID_IDENTITY="Developer ID Application: …" make notarize
+```
 
 ## OS compatibility
 

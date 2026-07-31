@@ -14,7 +14,7 @@ disabled-movement fallback, and typed live-placement failure propagation.
 
 | Layer | Required coverage | Requirement |
 | --- | --- | --- |
-| Pure state | expand, collapse, compact fallback, permission, cancellation | ARC-001 |
+| Pure state | expand, verified spacer collapse, fail-closed rejection, permission, cancellation | ARC-001, HIDE-001 |
 | Identity | third-party, image-only, repeated Control Center, migration | ITEM-001 |
 | Activation | success, denied, unsupported, timeout, recovered failure | ACT-001 |
 | Movement | observed frame success, retry, timeout, rollback | MOVE-001 |

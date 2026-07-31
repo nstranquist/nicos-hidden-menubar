@@ -1,6 +1,6 @@
 # ADR-0004: Incremental bounded capture cache
 
-- Status: Proposed
+- Status: Accepted (implemented 2026-07-14)
 - Date: 2026-07-11
 - Requirement refs: CAP-001, PERF-001
 

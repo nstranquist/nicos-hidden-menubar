@@ -17,8 +17,11 @@ MacBooks.
 
 - Native menu-bar app with no Dock icon during normal use
 - Visible, hidden, and always-hidden regions
+- **Notch support (on by default):** detect status items under the laptop camera
+  width and list them in an **Overflow** section of the reveal panel;
+  ⌘-drag to reorder, unhide into the menu bar, or park into the hidden lane
 - Auto-collapse profiles for focus, presenting, and recording
-- Global keyboard shortcut
+- Optional global keyboard shortcut, off by default (`Ctrl+Option+Command+M`)
 - Searchable hidden-items panel with text fallback
 - Automatic below-menu-bar reveal on notched displays
 - Per-display panel sizing with live display-change handling
@@ -40,9 +43,24 @@ cd nicos-hidden-menubar
 make install
 ```
 
-`make install` builds a release app, ad-hoc signs it, installs it at
-`/Applications/NicosHiddenMenuBar.app`, and opens it. Launch at login is managed
-from Settings using macOS Service Management.
+`make install` builds a release app and signs with a **stable identity** when
+available (Apple Development from your keychain so Accessibility survives
+rebuilds). Ad-hoc is only the fallback when no cert is found. Install path:
+`/Applications/NicosHiddenMenuBar.app`.
+
+The install path retires the pre-0.2 `NicosDev` launch agent and exact legacy
+process, archiving its launch-agent plist under
+`~/.config/nicos-hidden-menubar/legacy-launch-agents/`; the old app bundle is
+left in place as a rollback artifact.
+
+```bash
+make install-stable   # first time / after ad-hoc: reset AX TCC + open Privacy
+make print-identity   # show which codesign identity will be used
+# optional distribution:
+DEVELOPER_ID_IDENTITY="Developer ID Application: …" make notarize
+```
+
+Launch at login is managed from Settings using macOS Service Management.
 
 To remove the app, first disable **Launch at login** in Settings, then run:
 
@@ -67,11 +85,16 @@ it to open Settings, Diagnostics, the hidden-items panel, or Quit.
 
 | Permission | Required | Used for |
 |---|---:|---|
-| Accessibility | No | Experimental synthesized Command-drag item movement |
-| Screen Recording | No | Capturing live icons for the hidden-items panel |
+| Accessibility | Recommended | Opening hidden items from the panel; experimental item movement; Control Center labels via AX |
+| Screen Recording | Optional | Live pixel icons of menu-bar items in the panel |
 
-Basic marker-based collapse and reveal work without either permission. When
-Screen Recording is unavailable, the hidden-items panel uses text labels.
+Basic marker-based collapse and reveal work without either permission.
+
+- **Accessibility:** Settings → **Permissions** → **Add to Privacy Settings…**, then enable
+  **Nicos Hidden Bar** under System Settings → Privacy & Security → Accessibility.
+  Also: `open nicoshiddenbar://privacy`
+- **Screen Recording:** same Permissions section for live icons. Without it, the panel
+  shows SF Symbols (Control Center modules) and app icons as fallbacks.
 
 ## Configuration
 
@@ -92,7 +115,7 @@ The URL scheme can be used by Shortcuts, Hammerspoon, or shell automation:
 nicoshiddenbar://toggle
 nicoshiddenbar://expand
 nicoshiddenbar://collapse
-nicoshiddenbar://icebar
+nicoshiddenbar://reveal-panel
 nicoshiddenbar://open/settings
 nicoshiddenbar://open/diagnostics
 nicoshiddenbar://profile/focus
@@ -103,6 +126,8 @@ nicoshiddenbar://profile/focus
 ```bash
 swift test
 make build
+make format-check
+make perf-check PERF_ALLOW_UI_AUTOMATION=true  # visibly cycles the panel
 make headless-smoke
 make run
 ```
@@ -115,9 +140,15 @@ The headless smoke opens and captures the real settings window off-screen while
 asserting that the app never steals focus. Reports and screenshots are written
 under `.local/headless-smoke/` and are ignored by Git.
 
+Local verification (2026-07-29): `swift test` reports **162** package tests green.
 Run `make verify-publication && make headless-smoke` before release. The
 reviewed repository screenshot above is copied from that smoke output and
 contains no account, menu-bar, configuration, or other private user data.
+`make release-artifact` additionally creates a versioned ZIP, SHA-256 digest,
+and provenance receipt under `.local/release/`; the receipt remains explicitly
+not distribution-ready until Developer ID signing and notarization are present.
+The performance command is deliberately confirmation-gated because it restarts
+the app and visibly opens/dismisses the panel; notify the active Mac user first.
 
 ## Architecture and tradeoffs
 
@@ -129,14 +160,18 @@ open-source distribution rather than the sandboxed Mac App Store.
 
 Display topology and resolution changes are handled through macOS notifications,
 without a background polling loop. The reveal panel is sized and clamped to the
-display containing the status item, then releases captured icon images when it
-closes.
+display containing the status item. Closing it cancels active work while retaining
+only the bounded identity-keyed cache needed for a fast warm reveal; memory
+pressure clears that cache.
 
 Experimental movement synthesizes the same Command-drag interaction a user can
 perform manually. It remains off by default because third-party menu items can
-respond at different speeds. Automatic reveal keeps the normal marker-and-spacer
-path on regular displays and uses the below-menu-bar panel when a notch is
-detected.
+respond at different speeds. Automatic collapse uses the same verified
+marker-and-spacer mechanism on regular and notched displays. The below-menu-bar
+panel is the notch-safe access surface: it lets you search, activate, or
+explicitly unhide items without consuming permanent menu-bar space. A collapse
+that cannot be verified remains expanded instead of moving third-party items
+automatically.
 
 No configuration, diagnostics, screenshots, or telemetry leave the machine.
 

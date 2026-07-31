@@ -1,7 +1,7 @@
 # Acceptance and evidence
 
 - Initiative status: Proposed
-- Last baseline observation: 2026-07-11
+- Last review: 2026-07-31
 - Requirement state source: [`requirements.yaml`](requirements.yaml)
 
 ## v0.1 baseline
@@ -45,36 +45,48 @@ an unknown acceptance ID.
 | Requirement | State | Blocking evidence |
 | --- | --- | --- |
 | ARC-001 | verified | reducer and injected service owners are covered |
-| ITEM-001 | proposed | identity fixtures and migration |
-| ACT-001 | proposed | direct activation tests and hardware smoke |
-| MOVE-001 | proposed | retries, rollback, and owner matrix |
-| DSP-001 | proposed | automated topology plus external display |
-| CAP-001 | proposed | incremental cache and latency evidence |
-| TEST-001 | accepted | integration suite on CI |
-| PERF-001 | proposed | machine-readable budgets and baseline receipt |
-| REL-001 | proposed | CI plus signed/notarized clean-machine artifact |
-| DOC-001 | implemented | validator is committed and local checks pass; CI execution remains missing |
+| ITEM-001 | accepted | commit receipt before implemented |
+| HIDE-001 | accepted | commit receipt before implemented |
+| ACT-001 | accepted | Control Center hardware activation plus commit |
+| MOVE-001 | accepted | repeated successful hardware move/restore plus commit |
+| DSP-001 | accepted | external-display hardware matrix plus commit |
+| CAP-001 | accepted | commit receipt before implemented |
+| TEST-001 | accepted | clean public CI execution plus commit |
+| PERF-001 | accepted | passing receipt exists; commit receipt before implemented |
+| REL-001 | accepted | Developer ID notarized/stapled clean-machine artifact |
+| DOC-001 | implemented | validator is committed; current working-tree updates need commit |
 
 ## Known blockers
 
-- stable signing credentials are external operator-owned state;
+- Developer ID and notarization credentials are external operator-owned state;
 - external-display hardware is not currently attached;
-- Accessibility and Screen Recording evidence require explicit user grants;
+- Screen Recording icon-completion evidence requires an explicit user grant;
+- Control Center activation remains unobserved in the hardware matrix;
+- all 31 recorded experimental placement-hide attempts failed
+  `item_unobserved`; repeated hardware movement is not release-ready;
+- public CI and clean-machine install cannot be claimed from this checkout;
+- 469 Swift formatting findings remain under a no-regression ratchet;
 - private API compatibility cannot be proven solely by unit tests.
 
-## Slice 1 evidence
+## Current v0.2 evidence
 
-- `ARC-001-A`: five AppKit-free state-machine tests pass as part of 59 passing
-  package tests.
-- `ARC-001-B`: the application composition root injects distinct live discovery,
-  placement, activation, capture, and diagnostics owners. Twelve boundary tests
-  prove exact live-owner composition and shared placement identity, single-pass
-  discovery, direct image transport, diagnostic category/privacy preservation,
-  discovery/capture routing, activation-to-placement delegation, fail-closed
-  movement, and typed live-adapter failures.
-- Runtime parity: the optimized app constructed and validated that same live
-  service graph before passing the headless launch, settings-window,
-  screenshot, and no-foreground smoke on 2026-07-12.
-- The live activation owner intentionally preserves v0.1 behavior: it reveals
-  an item into the visible lane for a subsequent click. Direct activation
-  remains owned by `ACT-001`; ARC-001 does not claim it is complete.
+- 162 package tests cover state, identity, activation outcomes, bounded
+  movement/recovery, topology calculations, capture cache, performance
+  statistics, persistence, and service boundaries.
+- Three built-in-notch collapse/restore cycles verified all eight intended
+  hidden-lane IDs disappeared while standalone visible items remained.
+- The installed v0.2 build preserved the v0.1 configuration byte-for-byte and
+  retained the same stable Apple Development signing identity.
+- The five-minute v0.2 performance gate collected 61 process samples and 20
+  reveal samples. Its exact machine-readable observations are in
+  [`receipts/PERF-001.json`](receipts/PERF-001.json). RSS and reveal evidence
+  remain valid; the rounded CPU sample is superseded and awaits a
+  user-approved refresh with the CPU-time delta gate.
+- `make verify-publication` gates tests, the formatter ratchet, docs evidence,
+  warnings-as-errors release build, and both Git-history and working-tree
+  secret scans.
+- The 2026-07-31 local closeout also reconciled the installed bundle and active
+  process to `com.nstranquist.nicos-hidden-menubar`, archived the legacy launch
+  agent for rollback, passed `make verify-installed`, and generated a local
+  versioned artifact with honest non-distribution blockers. See
+  [`receipts/LOCAL-20260731.json`](receipts/LOCAL-20260731.json).

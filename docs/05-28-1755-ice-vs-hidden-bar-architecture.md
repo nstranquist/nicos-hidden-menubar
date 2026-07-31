@@ -2,6 +2,20 @@
 
 Date: 2026-05-28. Ice studied at `~/code/refs/Ice` (jordanbaird/Ice, shallow clone).
 
+## 2026-07-29 live correction
+
+The original comparison incorrectly generalized Ice's movement support into its
+section-collapse mechanism. Current source review and live tracing show that Ice
+collapses a section by expanding a divider/control item; it moves individual
+items relative to real menu extras for placement operations.
+
+Our spacer also works on the built-in notched display. The observed failure was
+in verification: the Window Server's full-width `Menubar` backdrop was treated
+as a hidden app item, so a successful spacer collapse was rejected and replaced
+by an unreliable absolute-movement attempt. ADR-0005 records the corrected
+design: verified spacer collapse on every display, exact rendered-ID checks,
+and fail-closed behavior without automatic item mutation.
+
 ## TL;DR
 
 Our app is a faithful **Hidden Bar clone**: it owns three of its own
@@ -22,9 +36,9 @@ panel for notched displays.
 | How it "sees" the bar | `statusItem.button.window.frame` (its own items only; laggy) | `CGSGetProcessMenuBarWindowList` + `CGSGetScreenRectForWindow` — real frames of all items |
 | How it hides | Inflate primary-separator `length` so items left of it fall off the right edge | Synthesizes Cmd-drag `CGEvent`s to *move* an item to a destination x |
 | Section model | toggle + primary + (optional) secondary spacer | Control items (`NSStatusItem` w/ autosave) as visible/hidden/always-hidden boundaries; moves other items relative to them |
-| Revealing hidden items | Shrink the spacer; items reflow back into the bar | **IceBar**: a floating panel that renders captured item images on hover/click |
+| Revealing hidden items | Shrink the spacer; items reflow back into the bar | **IceBar** (Ice's name): floating panel of captured item images on hover/click |
 | Item images | n/a | `ScreenCaptureKit` cache (`MenuBarItemImageCache`) |
-| Notch handling | Fails — spacer shoves items into the notch dead-zone | Reads true frames + shows hidden items in IceBar, so the notch never swallows anything |
+| Notch handling | Fails — spacer shoves items into the notch dead-zone | Reads true frames + shows hidden items in Ice's panel, so the notch never swallows anything |
 | Extras | profiles, auto-collapse, HS bridge | search, hotkeys, appearance/tint, spacing, per-display |
 
 ## Why the clone fails on notched Macs
@@ -68,27 +82,28 @@ All roadmap items below are now in the codebase:
    needs live, supervised validation + Accessibility permission. Simplified vs.
    Ice: a post/settle delay instead of the full event-tap continuation + 5x
    retry machinery; harden if it proves flaky in real use.
-2. **IceBar popover** — `IceBarPanel.swift` + `MenuBarItemImageCapture.swift`: a
-   floating `NSPanel` that renders hidden items (icons via `SCScreenshotManager`,
-   text labels when Screen Recording isn't granted), with a search field. Opens
-   via the context menu, the `nicoshiddenbar://icebar` URL, or the global hotkey
-   when `iceBarEnabled`. This is the real notch fix — hidden items need no menu
+2. **Reveal Panel** (ours; was briefly misnamed after Ice's IceBar) —
+   `RevealPanel.swift` + `MenuBarItemImageCapture.swift`: a floating `NSPanel`
+   that renders hidden items (icons via `SCScreenshotManager`, text labels when
+   Screen Recording isn't granted), with a search field. Opens via the context
+   menu, the `nicoshiddenbar://reveal-panel` URL, or the global hotkey when
+   `revealPanelEnabled`. This is the real notch fix — hidden items need no menu
    bar space.
 3. **Control-item section model** — `ControlSection.swift` + `StatusItemDefaults`:
    the toggle/primary/secondary status items now carry `autosaveName`s with
    seeded positions, so macOS persists their layout across launches (previously
    absent — a real cause of position drift).
-4. **Reveal hotkey / search / capture permission** — hotkey opens the IceBar when
-   enabled; IceBar has inline search; Preferences exposes the new toggles and a
-   Screen Recording permission button.
+4. **Reveal hotkey / search / capture permission** — hotkey opens the Reveal Panel
+   when enabled; the panel has inline search; Preferences exposes the new toggles
+   and a Screen Recording permission button.
 
 ### Still simplified vs. Ice (honest deltas)
 
 - Movement uses a fixed-delay post rather than Ice's frame-change waiters +
   retries, so it's less robust on slow/unresponsive item owners.
 - No per-item spacing control or menu-bar tint/appearance theming.
-- IceBar activation, when movement is OFF, falls back to expanding the bar rather
-  than clicking the hidden item in place.
+- Reveal Panel activation, when movement is OFF, falls back to expanding the bar
+  rather than clicking the hidden item in place.
 - Identity is `bundleID:title` (no Control-Center special-casing table like
   Ice's `MenuBarItemInfo`).
 
@@ -108,7 +123,7 @@ All roadmap items below are now in the codebase:
 - The collapsed divider is visually hidden instead of being centered in the
   inflated blank region.
 - Reveal mode is `automatic`, `inline`, or `belowMenuBar`; legacy
-  `iceBarEnabled` configuration remains readable. Automatic chooses the panel
+  `revealPanelEnabled` configuration remains readable. Automatic chooses the panel
   on a notched display.
 - The panel wraps items, clamps both dimensions to the status item's display,
   and refreshes when macOS reports a topology or resolution change.

@@ -4,7 +4,7 @@ No cell may be marked passing without dated evidence. `planned` is not support.
 
 | Environment | Discovery | Collapse/fallback | Panel | Activation | Login item | State |
 | --- | --- | --- | --- | --- | --- | --- |
-| M1 MacBook Pro, built-in notch, current operator OS | observed | observed compact fallback | observed | not verified | observed | partial |
+| MacBookPro18,1 (M1 Pro), macOS 15.7.7, built-in notch | observed 2026-07-29 | verified spacer, three cycles | observed + performance receipt | third-party activation observed; Control Center pending | observed | partial |
 | Built-in display, alternate scale | planned | planned | planned | planned | n/a | planned |
 | External display right of built-in | planned | planned | planned | planned | n/a | planned |
 | External display left/negative origin | unit only | unit only | unit only | planned | n/a | planned |
@@ -14,3 +14,5 @@ No cell may be marked passing without dated evidence. `planned` is not support.
 
 Each evidence receipt records hardware model, architecture, OS build, display
 names/resolutions/scales/origins, permissions, app version/commit, and outcome.
+The built-in-notch collapse evidence is recorded in
+[`../initiatives/v0.2-production-hardening/receipts/HIDE-001.json`](../initiatives/v0.2-production-hardening/receipts/HIDE-001.json).

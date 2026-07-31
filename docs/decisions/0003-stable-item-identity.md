@@ -1,6 +1,6 @@
 # ADR-0003: Stable identity for menu-bar items
 
-- Status: Proposed
+- Status: Accepted (implemented 2026-07-14)
 - Date: 2026-07-11
 - Requirement refs: ITEM-001, ACT-001
 
