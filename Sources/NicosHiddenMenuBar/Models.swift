@@ -51,10 +51,13 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     /// standalone app introduced first-run onboarding.
     var onboardingCompleted: Bool? = nil
     // Parity additions (optional so older persisted configs still decode).
-    /// Show the IceBar popover of hidden items instead of inline reveal.
+    /// Show the below-menu-bar **Reveal Panel** of hidden items instead of inline reveal.
+    var revealPanelEnabled: Bool? = nil
+    /// Legacy key from when the panel was misnamed after Ice's "IceBar".
+    /// Decoded for migration only; prefer `revealPanelEnabled`. Cleared on save via `validated()`.
     var iceBarEnabled: Bool? = nil
     /// Preferred reveal surface. Optional so existing schema-v1 files decode;
-    /// the legacy `iceBarEnabled` flag remains the migration fallback.
+    /// the legacy `revealPanelEnabled` / `iceBarEnabled` flags remain the migration fallback.
     var revealMode: HiddenItemRevealMode? = nil
     /// EXPERIMENTAL: allow synthesized Cmd-drag to truly move/hide arbitrary
     /// items. Off by default — manipulates the real menu bar and needs live
@@ -62,15 +65,33 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     var enableExperimentalItemMovement: Bool? = nil
     /// Reveal hidden items on hover over the toggle.
     var revealOnHover: Bool? = nil
+    /// Status-item chevron color (optional for backward-compatible decode).
+    var chevronColor: ChevronIconColor? = nil
+    /// Detect overflowed status items (cut off by menu-bar width / camera gap)
+    /// and list them under Overflow. Defaults **on** (opt-out). Config key kept
+    /// as `notchSupportEnabled` for decode compatibility.
+    var notchSupportEnabled: Bool? = nil
+    /// Bundle IDs / namespaces always listed in the reveal panel (even when fully
+    /// visible on the bar). Optional for backward-compatible decode.
+    var panelAlwaysShowNamespaces: [String]? = nil
 
-    var isIceBarEnabled: Bool { iceBarEnabled ?? false }
+    var isRevealPanelEnabled: Bool { revealPanelEnabled ?? iceBarEnabled ?? false }
     var isExperimentalItemMovementEnabled: Bool { enableExperimentalItemMovement ?? false }
     var isRevealOnHoverEnabled: Bool { revealOnHover ?? false }
     var isOnboardingCompleted: Bool { onboardingCompleted ?? false }
+    var resolvedChevronColor: ChevronIconColor { chevronColor ?? .white }
+    /// Overflow detection is on unless the user explicitly disables it.
+    var isNotchSupportEnabled: Bool { notchSupportEnabled ?? true }
+    var resolvedPanelAlwaysShowNamespaces: [String] {
+        panelAlwaysShowNamespaces ?? []
+    }
 
     var configuredRevealMode: HiddenItemRevealMode {
         if let revealMode {
             return revealMode
+        }
+        if let revealPanelEnabled {
+            return revealPanelEnabled ? .belowMenuBar : .inline
         }
         if let iceBarEnabled {
             return iceBarEnabled ? .belowMenuBar : .inline
@@ -94,12 +115,7 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
         useRegularActivationOnExpand: false,
         hideMarkersWhileExpanded: false,
         autoCollapse: AutoCollapseSettings(enabled: true, seconds: 10),
-        globalShortcut: GlobalShortcutSettings(
-            enabled: true,
-            keyCode: 42,
-            carbonFlags: 1_572_864,
-            display: #"cmd+shift+\\"#
-        ),
+        globalShortcut: .deliberate(enabled: false),
         lanes: LaneSettings(
             alwaysHiddenEnabled: false,
             primarySeparatorVisibleWhenExpanded: true,
@@ -122,9 +138,31 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
 
     func validated() throws -> HiddenBarConfig {
         var normalized = self
+        // Migrate legacy IceBar branding key → Reveal Panel.
+        if normalized.revealPanelEnabled == nil, let legacy = normalized.iceBarEnabled {
+            normalized.revealPanelEnabled = legacy
+        }
+        normalized.iceBarEnabled = nil
+        if normalized.panelAlwaysShowNamespaces == nil {
+            normalized.panelAlwaysShowNamespaces = []
+        } else {
+            // Deduplicate while preserving order.
+            var seen = Set<String>()
+            normalized.panelAlwaysShowNamespaces = normalized.panelAlwaysShowNamespaces?.filter {
+                let key = $0.trimmingCharacters(in: .whitespacesAndNewlines)
+                guard !key.isEmpty, seen.insert(key).inserted else { return false }
+                return true
+            }
+        }
         normalized.firstPartyVisible.preferredVisibleTitles = FirstPartyVisibleTitles
-            .sanitize(normalized.firstPartyVisible.preferredVisibleTitles)
+            .migratePolicyKeys(normalized.firstPartyVisible.preferredVisibleTitles)
             .filter { $0 != "HS" }
+        // Earlier builds persisted Cocoa modifier masks while registering them
+        // through Carbon. The two flag domains are incompatible, so fail closed
+        // and replace any high-bit legacy mask with the deliberate preset.
+        if normalized.globalShortcut.carbonFlags > GlobalShortcutSettings.maximumCarbonFlags {
+            normalized.globalShortcut = .deliberate(enabled: false)
+        }
 
         guard normalized.schemaVersion == Self.currentSchemaVersion else {
             throw HiddenBarValidationError.unsupportedSchemaVersion(schemaVersion)
@@ -150,6 +188,14 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
         for (name, profile) in normalized.profiles where profile.autoCollapseSeconds <= 0 {
             throw HiddenBarValidationError.invalidProfileSeconds(name: name, seconds: profile.autoCollapseSeconds)
         }
+        // Clamp unknown chevron strings (manual JSON edits) to a known case.
+        if let raw = normalized.chevronColor {
+            normalized.chevronColor = ChevronIconColor.normalized(raw.rawValue)
+        }
+        // Materialize default so saves write the explicit on/off choice.
+        if normalized.notchSupportEnabled == nil {
+            normalized.notchSupportEnabled = true
+        }
         return normalized
     }
 
@@ -172,16 +218,60 @@ enum HiddenItemRevealMode: String, Codable, CaseIterable, Equatable, Sendable {
     }
 }
 
+/// Status-item chevron color (user preference). AX-untrusted can still use a
+/// temporary warning tint without erasing this choice.
+enum ChevronIconColor: String, Codable, CaseIterable, Equatable, Sendable {
+    case white
+    case blue
+    case yellow
+    case orange
+    case system
+
+    var displayName: String {
+        switch self {
+        case .white: return "White"
+        case .blue: return "Blue"
+        case .yellow: return "Yellow"
+        case .orange: return "Orange"
+        case .system: return "System"
+        }
+    }
+
+    /// Normalize unknown/legacy strings to a safe default.
+    static func normalized(_ raw: String?) -> ChevronIconColor {
+        guard let raw, let value = ChevronIconColor(rawValue: raw) else {
+            return .white
+        }
+        return value
+    }
+}
+
 struct AutoCollapseSettings: Codable, Equatable, Sendable {
     var enabled: Bool
     var seconds: Int
 }
 
 struct GlobalShortcutSettings: Codable, Equatable, Sendable {
+    /// Carbon modifier masks occupy the low 16 bits. Cocoa NSEvent flags use
+    /// high bits and must never be passed to RegisterEventHotKey.
+    static let maximumCarbonFlags = 0xFFFF
+    static let deliberateKeyCode = 46  // kVK_ANSI_M
+    static let deliberateCarbonFlags = 6_400  // controlKey | optionKey | cmdKey
+    static let deliberateDisplay = "ctrl+opt+cmd+m"
+
     var enabled: Bool
     var keyCode: Int
     var carbonFlags: Int
     var display: String
+
+    static func deliberate(enabled: Bool) -> GlobalShortcutSettings {
+        GlobalShortcutSettings(
+            enabled: enabled,
+            keyCode: deliberateKeyCode,
+            carbonFlags: deliberateCarbonFlags,
+            display: deliberateDisplay
+        )
+    }
 }
 
 struct LaneSettings: Codable, Equatable, Sendable {
@@ -260,6 +350,60 @@ struct HiddenBarGeometrySnapshot: Codable, Equatable, Sendable {
     var notchDetected: Bool?
 }
 
+/// Sparse dogfood counters — durable across launches for local hillclimb.
+struct HiddenBarDogfoodStats: Codable, Equatable, Sendable {
+    var revealPanelOpens: Int = 0
+    var revealPanelDismisses: Int = 0
+    var placementHideStarts: Int = 0
+    var placementHideSuccesses: Int = 0
+    var placementHideFailures: Int = 0
+    var lastPlacementHideReason: String?
+    var lastRevealAt: String?
+    var lastHideAt: String?
+    var accessibilityTrustedSamples: Int = 0
+    var accessibilityUntrustedSamples: Int = 0
+
+    static let `default` = HiddenBarDogfoodStats()
+}
+
+struct RevealPerformanceSample: Codable, Equatable, Sendable {
+    var shellMilliseconds: Double
+    var contentMilliseconds: Double
+    /// Items already available when the shell becomes visible. Optional so
+    /// observations written before the warm-cache metric remain readable.
+    var shellItemCount: Int?
+    var itemCount: Int
+    var imageCount: Int
+    /// Permission context at observation time. Optional so older samples
+    /// remain decode-compatible.
+    var accessibilityTrusted: Bool?
+    var screenRecordingGranted: Bool?
+    var warm: Bool
+    var observedAt: String
+}
+
+struct HiddenBarPerformanceStats: Codable, Equatable, Sendable {
+    var revealSamples: [RevealPerformanceSample]
+
+    static let maxRevealSamples = 50
+    static let `default` = HiddenBarPerformanceStats(revealSamples: [])
+
+    mutating func append(_ sample: RevealPerformanceSample) {
+        revealSamples.append(sample)
+        if revealSamples.count > Self.maxRevealSamples {
+            revealSamples.removeFirst(revealSamples.count - Self.maxRevealSamples)
+        }
+    }
+
+    static func percentile(_ values: [Double], percentile: Double) -> Double? {
+        guard !values.isEmpty else { return nil }
+        let sorted = values.sorted()
+        let clamped = min(1, max(0, percentile))
+        let index = Int(ceil(clamped * Double(sorted.count)) - 1)
+        return sorted[max(0, min(sorted.count - 1, index))]
+    }
+}
+
 struct HiddenBarDiagnostics: Codable, Equatable, Sendable {
     var markerOrderStatus: MarkerOrderStatus
     var geometryReadable: Bool
@@ -275,6 +419,11 @@ struct HiddenBarDiagnostics: Codable, Equatable, Sendable {
     /// nil = not yet verified, true = items confirmed hidden past the edge,
     /// false = collapse ran but no item moved off-screen (notch swallow risk).
     var lastCollapseHidItems: Bool?
+    /// Optional dogfood counters (decode-tolerant for older diagnostics.json).
+    var dogfood: HiddenBarDogfoodStats? = nil
+    /// Bounded local-only performance observations. Optional for backward
+    /// compatibility with diagnostics written before PERF-001 instrumentation.
+    var performance: HiddenBarPerformanceStats? = nil
     var updatedAt: String
 
     static let `default` = HiddenBarDiagnostics(
@@ -289,6 +438,8 @@ struct HiddenBarDiagnostics: Codable, Equatable, Sendable {
         hotkeyMessage: nil,
         lastIgnoredURL: nil,
         lastCollapseHidItems: nil,
+        dogfood: .default,
+        performance: .default,
         updatedAt: hiddenBarTimestampString(Date())
     )
 }

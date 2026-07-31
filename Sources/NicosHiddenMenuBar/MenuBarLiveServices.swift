@@ -34,9 +34,8 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
             hasNotch: hasNotch
         )
         let detailsByID = Dictionary(uniqueKeysWithValues: details.map { ($0.windowID, $0) })
-        let items = scan.items.compactMap { item in
-            detailsByID[item.windowID].map(Self.discoveredItem)
-        }
+        let ordered = scan.items.compactMap { detailsByID[$0.windowID] }
+        let items = Self.discoveredItems(from: ordered)
 
         return MenuBarDiscoverySnapshot(
             items: items,
@@ -51,18 +50,97 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
         guard let screen = NSScreen.menuBarScreen(for: display) else {
             return []
         }
-        return MenuBarItemScanner.detailedItems(screen: screen).map(Self.discoveredItem)
+        return Self.discoveredItems(from: MenuBarItemScanner.detailedItems(screen: screen))
     }
 
-    private static func discoveredItem(from info: MenuBarWindowInfo) -> MenuBarDiscoveredItem {
-        MenuBarDiscoveredItem(
-            handle: MenuBarItemHandle(windowID: info.windowID),
-            ownerPID: info.ownerPID,
-            ownerName: info.ownerName ?? "Unknown",
-            title: info.title ?? "",
-            displayName: info.displayName,
-            frame: info.frame
-        )
+    /// Assigns versioned identities with ordinal disambiguation (ITEM-001) and
+    /// enriches empty Control Center titles via Accessibility extras menu.
+    static func discoveredItems(from details: [MenuBarWindowInfo]) -> [MenuBarDiscoveredItem] {
+        let pids = Set(details.map(\.ownerPID))
+        let axLabels = MenuBarAccessibilityCatalog.labeledFrames(forPIDs: pids)
+
+        let enrichedTitles: [String] = details.map { info in
+            let windowTitle = (info.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
+            if !windowTitle.isEmpty { return windowTitle }
+            if let ax = MenuBarAccessibilityCatalog.bestTitle(
+                for: info.frame,
+                pid: info.ownerPID,
+                among: axLabels
+            ) {
+                return ax
+            }
+            return ""
+        }
+
+        let raw = zip(details, enrichedTitles).map { info, title -> (namespace: String, title: String) in
+            let namespace = MenuBarWindowInfo.bundleIdentifier(forPID: info.ownerPID)
+                ?? info.ownerName
+                ?? "unknown"
+            return (namespace, title)
+        }
+        let identities = MenuBarItemIdentity.resolveScan(raw)
+
+        var result: [MenuBarDiscoveredItem] = []
+        result.reserveCapacity(details.count)
+        for index in details.indices {
+            let info = details[index]
+            let enrichedTitle = enrichedTitles[index]
+            let identity = identities[index]
+            let displayName = Self.friendlyDisplayName(
+                info: info,
+                title: enrichedTitle,
+                identity: identity
+            )
+            result.append(
+                MenuBarDiscoveredItem(
+                    handle: MenuBarItemHandle(windowID: info.windowID, identity: identity),
+                    identity: identity,
+                    ownerPID: info.ownerPID,
+                    ownerName: info.ownerName ?? "Unknown",
+                    title: enrichedTitle,
+                    displayName: displayName,
+                    frame: info.frame
+                )
+            )
+        }
+        return result
+    }
+
+    private static func friendlyDisplayName(
+        info: MenuBarWindowInfo,
+        title: String,
+        identity: MenuBarItemIdentity
+    ) -> String {
+        if let ccName = ControlCenterModules.displayName(
+            forModuleID: identity.moduleID,
+            title: title,
+            ordinal: identity.ordinal
+        ), identity.namespace.lowercased().contains("controlcenter") || identity.namespace == ControlCenterModules.controlCenterNamespace {
+            return ccName
+        }
+        if !title.isEmpty {
+            if info.ownerPID != 0,
+               let app = NSRunningApplication(processIdentifier: info.ownerPID)?.localizedName,
+               app != title {
+                return "\(app) — \(title)"
+            }
+            return title
+        }
+        if info.ownerPID != 0,
+           let app = NSRunningApplication(processIdentifier: info.ownerPID)?.localizedName {
+            return app
+        }
+        if let owner = info.ownerName, !owner.isEmpty, owner.lowercased() != "menubar" {
+            return owner
+        }
+        // CGS-only overflow extras (no owner) — still show a usable label.
+        return "Menu extra"
+    }
+}
+
+extension MenuBarWindowInfo {
+    fileprivate static func bundleIdentifier(forPID pid: pid_t) -> String? {
+        NSRunningApplication(processIdentifier: pid)?.bundleIdentifier
     }
 }
 
@@ -96,6 +174,12 @@ final class LiveMenuBarPlacementService: MenuBarItemPlacing {
     }
 
     func place(_ request: MenuBarPlacementRequest) async throws {
+        try await place(request, forceEnabled: false)
+    }
+
+    /// - Parameter forceEnabled: When true, allow the move even if experimental
+    ///   free-rearrange is off (used for activation relocate / unhide).
+    func place(_ request: MenuBarPlacementRequest, forceEnabled: Bool) async throws {
         guard request.desiredLane == .visible else {
             throw MenuBarPlacementError.unsupportedLane(request.desiredLane)
         }
@@ -109,14 +193,19 @@ final class LiveMenuBarPlacementService: MenuBarItemPlacing {
         case .rightOf(let anchor):
             .rightOf(targetWindowID: anchor.windowID)
         }
+        let enabled = forceEnabled || isMovementEnabled()
         do {
-            try await move(request.item.windowID, destination, isMovementEnabled())
+            try await move(request.item.windowID, destination, enabled)
         } catch MenuBarItemMover.MoveError.notEnabled {
             throw MenuBarPlacementError.movementDisabled
         } catch MenuBarItemMover.MoveError.notMovable {
             throw MenuBarPlacementError.itemNotMovable
         } catch MenuBarItemMover.MoveError.missingTarget {
             throw MenuBarPlacementError.targetUnavailable
+        } catch MenuBarItemMover.MoveError.timedOut {
+            throw MenuBarPlacementError.timedOut
+        } catch MenuBarItemMover.MoveError.cancelled {
+            throw MenuBarPlacementError.cancelled
         } catch {
             throw MenuBarPlacementError.failed(String(describing: error))
         }
@@ -125,38 +214,114 @@ final class LiveMenuBarPlacementService: MenuBarItemPlacing {
 
 @MainActor
 final class LiveMenuBarActivationService: MenuBarItemActivating {
+    typealias OpenMenu = (CGWindowID) async throws -> Void
+
     private let placement: any MenuBarItemPlacing
     private let isMovementEnabled: () -> Bool
+    private let openMenu: OpenMenu
+    private let accessibilityGranted: () -> Bool
 
     init(
         placement: any MenuBarItemPlacing,
-        isMovementEnabled: @escaping () -> Bool
+        isMovementEnabled: @escaping () -> Bool,
+        openMenu: @escaping OpenMenu = { try await MenuBarItemActivator.openMenu(windowID: $0) },
+        accessibilityGranted: @escaping () -> Bool = { MenuBarItemActivator.hasAccessibilityPermission() }
     ) {
         self.placement = placement
         self.isMovementEnabled = isMovementEnabled
+        self.openMenu = openMenu
+        self.accessibilityGranted = accessibilityGranted
     }
 
     func activate(_ request: MenuBarActivationRequest) async -> MenuBarActivationOutcome {
-        guard isMovementEnabled() else {
+        let info = MenuBarWindowInfo.read(windowID: request.item.windowID)
+        // Overflow / off-screen extras cannot receive a usable in-place click
+        // (cursor jumps under the camera gap and menus never open).
+        let needsRelocate = Self.itemNeedsRelocateForActivation(info)
+
+        // Primary path: open in place when the item is already clickable.
+        if request.preferInPlace, !needsRelocate {
+            let inPlace = await attemptOpen(windowID: request.item.windowID)
+            if case .activated = inPlace { return inPlace }
+            if case .permissionRequired = inPlace { return inPlace }
+            // Hard missing item — don't bother relocating a vanished window.
+            if case .unsupported(let reason) = inPlace, reason == "item_missing" {
+                return inPlace
+            }
+            // Recoverable open failure (incl. frame unreadable) → relocate when free-move is on.
+            if !isMovementEnabled() { return inPlace }
+        } else if needsRelocate {
+            // Must relocate before open; not gated by experimental free-move.
+        } else if !isMovementEnabled() {
             return .unsupported(reason: "experimental_item_movement_disabled")
         }
 
+        // Secondary path: move into the visible lane, then open.
         do {
-            try await placement.place(
+            try await placeForActivation(
                 MenuBarPlacementRequest(
                     item: request.item,
                     targetDisplay: request.targetDisplay,
                     desiredLane: .visible,
                     anchor: .rightOf(request.visibleAnchor)
-                )
+                ),
+                forceEnabled: needsRelocate || isMovementEnabled()
             )
-            return .revealedForActivation
         } catch MenuBarPlacementError.itemNotMovable {
+            let fallback = await attemptOpen(windowID: request.item.windowID)
+            if case .activated = fallback { return .activated }
             return .unsupported(reason: "item_not_movable")
         } catch MenuBarPlacementError.movementDisabled {
             return .unsupported(reason: "experimental_item_movement_disabled")
+        } catch MenuBarPlacementError.timedOut {
+            return .failedRecovered(reason: "placement_timeout")
         } catch {
-            return .failed(reason: String(describing: error))
+            return .failedRecovered(reason: String(describing: error))
+        }
+
+        let afterMove = await attemptOpen(windowID: request.item.windowID)
+        if case .activated = afterMove {
+            return .activated
+        }
+        return .revealedForActivation
+    }
+
+    /// Off-screen or zero-owner frames cannot be clicked in place.
+    /// Missing info is not treated as relocate — openMenu reports missing item.
+    static func itemNeedsRelocateForActivation(_ info: MenuBarWindowInfo?) -> Bool {
+        guard let info else { return false }
+        if !info.isOnScreen { return true }
+        if info.ownerPID == 0 { return true }
+        if info.frame.width < 1 || info.frame.height < 1 { return true }
+        return false
+    }
+
+    private func placeForActivation(
+        _ request: MenuBarPlacementRequest,
+        forceEnabled: Bool
+    ) async throws {
+        if let live = placement as? LiveMenuBarPlacementService {
+            try await live.place(request, forceEnabled: forceEnabled)
+        } else {
+            try await placement.place(request)
+        }
+    }
+
+    private func attemptOpen(windowID: CGWindowID) async -> MenuBarActivationOutcome {
+        if !accessibilityGranted() {
+            return .permissionRequired(permission: "accessibility")
+        }
+        do {
+            try await openMenu(windowID)
+            return .activated
+        } catch MenuBarItemActivator.ActivateError.accessibilityRequired {
+            return .permissionRequired(permission: "accessibility")
+        } catch MenuBarItemActivator.ActivateError.missingItem {
+            return .unsupported(reason: "item_missing")
+        } catch MenuBarItemActivator.ActivateError.missingFrame {
+            return .unsupported(reason: "item_frame_unreadable")
+        } catch {
+            return .failedRecovered(reason: String(describing: error))
         }
     }
 
@@ -167,21 +332,74 @@ final class LiveMenuBarActivationService: MenuBarItemActivating {
 
 @MainActor
 final class LiveMenuBarCaptureService: MenuBarItemCapturing {
+    private let cache: MenuBarIconCache
+
+    init(cache: MenuBarIconCache = MenuBarIconCache()) {
+        self.cache = cache
+    }
+
     func capture(
         _ items: [MenuBarDiscoveredItem],
         on display: MenuBarDisplayHandle
     ) async -> [MenuBarCapturedItem] {
+        var result: [MenuBarCapturedItem] = []
+        await captureIncremental(items, on: display) { result = $0 }
+        return result
+    }
+
+    func captureIncremental(
+        _ items: [MenuBarDiscoveredItem],
+        on display: MenuBarDisplayHandle,
+        onUpdate: @escaping @MainActor ([MenuBarCapturedItem]) -> Void
+    ) async {
         guard let screen = NSScreen.menuBarScreen(for: display) else {
-            return items.map { MenuBarCapturedItem(item: $0, image: nil, scale: 1) }
+            onUpdate(items.map { MenuBarCapturedItem(item: $0, image: nil, scale: 1, isPlaceholder: true) })
+            return
         }
 
-        let windowInfo = items.compactMap { MenuBarWindowInfo.read(windowID: $0.handle.windowID) }
-        let captured = await MenuBarItemImageCapture.capture(items: windowInfo, on: screen)
-        return Self.merge(
-            items: items,
-            captured: captured,
-            scale: Double(screen.backingScaleFactor)
-        )
+        let scale = Double(screen.backingScaleFactor)
+        var working = items.map { item -> MenuBarCapturedItem in
+            let signature = MenuBarFrameSignature.make(item.frame, scale: scale)
+            if let cached = cache.lookup(identityKey: item.identity.key, frameSignature: signature) {
+                return MenuBarCapturedItem(item: item, image: cached.0, scale: cached.1, isPlaceholder: false)
+            }
+            return MenuBarCapturedItem(item: item, image: nil, scale: scale, isPlaceholder: true)
+        }
+        onUpdate(working)
+
+        let needCapture = working.enumerated().compactMap { index, captured -> (Int, MenuBarDiscoveredItem)? in
+            captured.image == nil ? (index, captured.item) : nil
+        }
+        guard !needCapture.isEmpty else { return }
+
+        guard MenuBarItemImageCapture.hasScreenRecordingPermission() else {
+            // Leave placeholders; text labels already usable.
+            return
+        }
+
+        let windowInfos = needCapture.compactMap { _, item in
+            MenuBarWindowInfo.read(windowID: item.handle.windowID)
+        }
+        let captured = await MenuBarItemImageCapture.capture(items: windowInfos, on: screen)
+        let byWindow = Dictionary(uniqueKeysWithValues: captured.map { ($0.windowID, $0) })
+
+        for (index, item) in needCapture {
+            guard let shot = byWindow[item.handle.windowID], let image = shot.image else { continue }
+            let signature = MenuBarFrameSignature.make(item.frame, scale: scale)
+            cache.store(
+                identityKey: item.identity.key,
+                image: image,
+                scale: scale,
+                frameSignature: signature
+            )
+            working[index] = MenuBarCapturedItem(
+                item: item,
+                image: image,
+                scale: scale,
+                isPlaceholder: false
+            )
+            onUpdate(working)
+        }
     }
 
     static func merge(
@@ -194,7 +412,8 @@ final class LiveMenuBarCaptureService: MenuBarItemCapturing {
             MenuBarCapturedItem(
                 item: item,
                 image: capturedByWindowID[item.handle.windowID]?.image,
-                scale: scale
+                scale: scale,
+                isPlaceholder: capturedByWindowID[item.handle.windowID]?.image == nil
             )
         }
     }

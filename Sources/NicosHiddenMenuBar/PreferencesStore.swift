@@ -145,6 +145,65 @@ final class PreferencesStore: ObservableObject {
         }
     }
 
+    func recordDogfoodRevealOpen() {
+        updateDiagnostics { current in
+            var d = current.dogfood ?? .default
+            d.revealPanelOpens += 1
+            d.lastRevealAt = hiddenBarTimestampString(Date())
+            current.dogfood = d
+        }
+    }
+
+    func recordDogfoodRevealDismiss() {
+        updateDiagnostics { current in
+            var d = current.dogfood ?? .default
+            d.revealPanelDismisses += 1
+            current.dogfood = d
+        }
+    }
+
+    func recordDogfoodHideStart() {
+        updateDiagnostics { current in
+            var d = current.dogfood ?? .default
+            d.placementHideStarts += 1
+            current.dogfood = d
+        }
+    }
+
+    func recordDogfoodHideOutcome(succeeded: Bool, reason: String) {
+        updateDiagnostics { current in
+            var d = current.dogfood ?? .default
+            if succeeded {
+                d.placementHideSuccesses += 1
+            } else {
+                d.placementHideFailures += 1
+            }
+            d.lastPlacementHideReason = reason
+            d.lastHideAt = hiddenBarTimestampString(Date())
+            current.dogfood = d
+        }
+    }
+
+    func recordDogfoodAccessibilitySample(trusted: Bool) {
+        updateDiagnostics { current in
+            var d = current.dogfood ?? .default
+            if trusted {
+                d.accessibilityTrustedSamples += 1
+            } else {
+                d.accessibilityUntrustedSamples += 1
+            }
+            current.dogfood = d
+        }
+    }
+
+    func recordRevealPerformance(_ sample: RevealPerformanceSample) {
+        updateDiagnostics { current in
+            var performance = current.performance ?? .default
+            performance.append(sample)
+            current.performance = performance
+        }
+    }
+
     @discardableResult
     func replaceFirstPartyVisibleTitles(_ titles: [String]) -> Bool {
         updateConfig { current in

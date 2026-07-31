@@ -12,8 +12,11 @@ struct MenuBarItemInfo: Equatable, Hashable, Sendable, Codable {
     /// The item's title (often empty for image-only items).
     var title: String
 
-    /// A stable key string for caching/dedupe.
-    var key: String { "\(namespace):\(title)" }
+    /// Legacy `namespace:title` key retained for migration (ITEM-001-B).
+    var legacyKey: String { "\(namespace):\(title)" }
+
+    /// Versioned durable key (ITEM-001). Prefer `identity.key` when ordinal matters.
+    var key: String { identity.key }
 
     init(namespace: String, title: String) {
         self.namespace = namespace
@@ -39,8 +42,7 @@ extension MenuBarItemInfo {
     }
 }
 
-/// Window-server metadata for a single menu bar item window, read via
-/// `CGWindowListCopyWindowInfo`. Read-only.
+/// Window-server metadata for a single menu bar item window. Read-only.
 struct MenuBarWindowInfo: Sendable {
     var windowID: CGWindowID
     var frame: CGRect
@@ -48,6 +50,14 @@ struct MenuBarWindowInfo: Sendable {
     var ownerName: String?
     var title: String?
     var isOnScreen: Bool
+
+    /// The Window Server publishes the full-width menu-bar backdrop in the
+    /// private process-menu-bar list alongside real menu extras. It is chrome,
+    /// not an actionable item, and must never participate in lane counts or
+    /// collapse verification.
+    var isMenuBarBackdrop: Bool {
+        ownerName == "Window Server" && title == "Menubar"
+    }
 
     var info: MenuBarItemInfo {
         let namespace = MenuBarWindowInfo.bundleIdentifier(forPID: ownerPID) ?? ownerName ?? "unknown"
@@ -71,24 +81,58 @@ struct MenuBarWindowInfo: Sendable {
     }
 
     /// Builds metadata for a window ID using public CoreGraphics window info.
+    ///
+    /// `CGWindowListCreateDescriptionFromArray` is the primary path because,
+    /// unlike `CGWindowListCopyWindowInfo(.optionIncludingWindow, ...)`, it
+    /// preserves owner/title metadata for menu extras that are currently
+    /// off-screen. This is the same distinction Ice relies on for its Ice Bar.
+    ///
+    /// Falls back to CGS frame-only when both public metadata paths miss the
+    /// item. Those windows are still real menu-bar items and must appear in
+    /// Overflow.
     static func read(windowID: CGWindowID) -> MenuBarWindowInfo? {
-        guard
-            let infoList = CGWindowListCopyWindowInfo([.optionIncludingWindow], windowID) as? [[String: Any]],
-            let dict = infoList.first
-        else {
+        let bridgedFrame = MenuBarBridging.frame(for: windowID)
+        if let dict = descriptionDictionary(for: windowID)
+            ?? copyWindowDictionary(for: windowID)
+        {
+            return decode(windowID: windowID, dictionary: dict, bridgedFrame: bridgedFrame)
+        }
+
+        // CGWindowList missed it — still readable via CGS (overflow under-gap case).
+        guard let bridgedFrame, bridgedFrame.width >= 1 else {
             return nil
         }
-        let ownerPID = (dict[kCGWindowOwnerPID as String] as? pid_t) ?? 0
-        let ownerName = dict[kCGWindowOwnerName as String] as? String
-        let title = dict[kCGWindowName as String] as? String
-        let isOnScreen = (dict[kCGWindowIsOnscreen as String] as? Bool) ?? false
+        return MenuBarWindowInfo(
+            windowID: windowID,
+            frame: bridgedFrame,
+            ownerPID: 0,
+            ownerName: nil,
+            title: nil,
+            isOnScreen: false
+        )
+    }
+
+    /// Pure decoder retained as an internal seam for off-screen metadata tests.
+    static func decode(
+        windowID: CGWindowID,
+        dictionary: [String: Any],
+        bridgedFrame: CGRect?
+    ) -> MenuBarWindowInfo {
+        let ownerPID = (dictionary[kCGWindowOwnerPID as String] as? pid_t) ?? 0
+        let ownerName = dictionary[kCGWindowOwnerName as String] as? String
+        let title = dictionary[kCGWindowName as String] as? String
+        let isOnScreen = (dictionary[kCGWindowIsOnscreen as String] as? Bool) ?? false
 
         var frame = CGRect.zero
-        if let boundsDict = dict[kCGWindowBounds as String] as? [String: Any],
-           let cf = CGRect(dictionaryRepresentation: boundsDict as CFDictionary) {
-            frame = cf
-        } else if let bridged = MenuBarBridging.frame(for: windowID) {
-            frame = bridged
+        if let boundsDictionary = dictionary[kCGWindowBounds as String] as? NSDictionary,
+           let decoded = CGRect(dictionaryRepresentation: boundsDictionary as CFDictionary) {
+            frame = decoded
+        } else if let bridgedFrame {
+            frame = bridgedFrame
+        }
+
+        if frame.width < 1, let bridgedFrame {
+            frame = bridgedFrame
         }
 
         return MenuBarWindowInfo(
@@ -99,5 +143,25 @@ struct MenuBarWindowInfo: Sendable {
             title: title,
             isOnScreen: isOnScreen
         )
+    }
+
+    private static func descriptionDictionary(for windowID: CGWindowID) -> [String: Any]? {
+        var pointer = UnsafeRawPointer(bitPattern: Int(windowID))
+        guard
+            let array = CFArrayCreate(kCFAllocatorDefault, &pointer, 1, nil),
+            let descriptions = CGWindowListCreateDescriptionFromArray(array) as? [CFDictionary],
+            let description = descriptions.first
+        else {
+            return nil
+        }
+        return description as? [String: Any]
+    }
+
+    private static func copyWindowDictionary(for windowID: CGWindowID) -> [String: Any]? {
+        let infoList = CGWindowListCopyWindowInfo(
+            [.optionIncludingWindow],
+            windowID
+        ) as? [[String: Any]]
+        return infoList?.first
     }
 }

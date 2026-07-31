@@ -14,9 +14,21 @@ struct DiagnosticsView: View {
             }
 
             Section("Geometry") {
-                Text(preferencesStore.diagnostics.geometryReadable ? "readable" : "geometry_unreadable")
+                Text(preferencesStore.diagnostics.geometryReadable ? "readable" : "needs repair")
                 if let reason = preferencesStore.diagnostics.geometryReason {
-                    Text(reason).foregroundStyle(.secondary)
+                    Text(reason)
+                        .font(.system(.body, design: .monospaced))
+                        .foregroundStyle(.orange)
+                }
+                if let snapshot = preferencesStore.diagnostics.geometrySnapshot {
+                    Text("toggle minX: \(format(snapshot.toggleMinX))")
+                        .font(.caption.monospaced())
+                    Text("primary minX: \(format(snapshot.primaryMinX))")
+                        .font(.caption.monospaced())
+                    Text("secondary minX: \(format(snapshot.secondaryMinX))")
+                        .font(.caption.monospaced())
+                    Text("screen visible maxX: \(format(snapshot.primaryScreenVisibleMaxX))")
+                        .font(.caption.monospaced())
                 }
             }
 
@@ -25,8 +37,13 @@ struct DiagnosticsView: View {
                 Text("Items detected: \(snapshot?.realItemCount.map(String.init) ?? "—")")
                 Text("Hideable (left of toggle): \(snapshot?.realHideableItemCount.map(String.init) ?? "—")")
                     .foregroundStyle(.secondary)
+                if let leftmost = snapshot?.realLeftmostMinX {
+                    Text("Leftmost item minX: \(String(format: "%.1f", leftmost))")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
                 if let notch = snapshot?.notchDetected {
-                    Text(notch ? "Notched display — verifying collapse against real frames" : "No notch")
+                    Text(notch ? "Notched display — spacer path fail-closed; panel preferred" : "No notch")
                         .foregroundStyle(.secondary)
                 }
                 switch preferencesStore.diagnostics.lastCollapseHidItems {
@@ -34,12 +51,41 @@ struct DiagnosticsView: View {
                     Label("Last collapse hid items ✓", systemImage: "checkmark.circle")
                         .foregroundStyle(.green)
                 case .some(false):
-                    Label("Last collapse hid nothing — items may be stuck under the notch", systemImage: "exclamationmark.triangle")
+                    Label("Last collapse hid nothing — use panel / repair markers", systemImage: "exclamationmark.triangle")
                         .foregroundStyle(.orange)
                 case .none:
                     Text("Collapse not yet verified")
                         .foregroundStyle(.secondary)
                 }
+            }
+
+            Section("Dogfood") {
+                let d = preferencesStore.diagnostics.dogfood ?? .default
+                Text("Reveal panel opens: \(d.revealPanelOpens) · dismisses: \(d.revealPanelDismisses)")
+                Text("Placement hide starts: \(d.placementHideStarts)")
+                Text("Hide success: \(d.placementHideSuccesses) · fail: \(d.placementHideFailures)")
+                if let reason = d.lastPlacementHideReason {
+                    Text("Last hide: \(reason)")
+                        .font(.caption.monospaced())
+                        .foregroundStyle(.secondary)
+                }
+                Text("AX samples trusted/untrusted: \(d.accessibilityTrustedSamples)/\(d.accessibilityUntrustedSamples)")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                Text("Counters live in ~/.config/nicos-hidden-menubar/diagnostics.json")
+                    .font(.caption2)
+                    .foregroundStyle(.tertiary)
+            }
+
+            Section("Repair") {
+                Text("If markers sit far off-screen (negative minX on a single display) or hideable count is 0, reset preferred positions.")
+                    .font(.caption)
+                    .foregroundStyle(.secondary)
+                    .fixedSize(horizontal: false, vertical: true)
+                Button("Repair Marker Positions") {
+                    NotificationCenter.default.post(name: .nicosHiddenBarRepairMarkers, object: nil)
+                }
+                .buttonStyle(.borderedProminent)
             }
 
             Section("Bridge") {
@@ -82,7 +128,13 @@ struct DiagnosticsView: View {
                 }
             }
         }
+        .formStyle(.grouped)
         .padding()
-        .frame(width: 540, height: 460)
+        .frame(minWidth: 560, minHeight: 520)
+    }
+
+    private func format(_ value: Double?) -> String {
+        guard let value else { return "—" }
+        return String(format: "%.1f", value)
     }
 }

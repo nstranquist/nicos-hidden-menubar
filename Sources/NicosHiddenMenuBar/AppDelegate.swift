@@ -37,7 +37,7 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         preferencesWindow = openWindow(
             existing: preferencesWindow,
             title: "Nicos Hidden Bar Settings",
-            size: NSSize(width: 680, height: 720)
+            size: NSSize(width: 760, height: 680)
         ) {
             PreferencesView()
                 .environmentObject(self.preferencesStore)
@@ -51,7 +51,7 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         onboardingWindow = openWindow(
             existing: onboardingWindow,
             title: "Nicos Hidden Bar Onboarding",
-            size: NSSize(width: 560, height: 480)
+            size: NSSize(width: 580, height: 560)
         ) {
             OnboardingView(onComplete: { [weak self] in
                 guard let self else { return }
@@ -83,7 +83,7 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         diagnosticsWindow = openWindow(
             existing: diagnosticsWindow,
             title: "Nicos Hidden Bar Diagnostics",
-            size: NSSize(width: 540, height: 460)
+            size: NSSize(width: 580, height: 560)
         ) {
             DiagnosticsView()
                 .environmentObject(self.preferencesStore)
@@ -174,6 +174,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
     func applicationDidFinishLaunching(_ notification: Notification) {
         HiddenMenuBarTelemetry.appLifecycle.info("Application launched")
         NSApplication.shared.setActivationPolicy(.accessory)
+        // Recover if a previous process left the cursor hidden/desynced after a move.
+        MouseCursorBridge.forceRestore(to: MouseCursorBridge.location)
         let menuBarServices = MenuBarServices.live(preferencesStore: preferencesStore)
 
         // Headless launch-verify: prove the preferences window (the real
@@ -193,6 +195,15 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         bridge.refresh(using: preferencesStore.config)
         preferencesStore.recordBridgeStatus(bridge.status)
+
+        // Quiet enroll only — never prompt:true on launch (re-prompt spam).
+        // Ad-hoc rebuilds need the user to re-enable the *current* binary in
+        // Privacy → Accessibility; we do not force the system dialog here.
+        if AccessibilityGatePolicy.shouldEnrollQuietlyOnLaunch(
+            trusted: PrivacyPermissions.isAccessibilityTrusted
+        ) {
+            _ = PrivacyPermissions.enrollAccessibility(prompt: false)
+        }
 
         statusController = StatusSectionController(
             preferencesStore: preferencesStore,
@@ -228,11 +239,54 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             }
             .store(in: &cancellables)
 
+        NotificationCenter.default.addObserver(
+            forName: .nicosHiddenBarRepairMarkers,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.statusController?.repairMarkers()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .nicosHiddenBarOpenOnboarding,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.coordinator.openOnboarding()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .nicosHiddenBarOpenProfileEditor,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.coordinator.openProfileEditor()
+            }
+        }
+        NotificationCenter.default.addObserver(
+            forName: .nicosHiddenBarOpenDiagnostics,
+            object: nil,
+            queue: .main
+        ) { [weak self] _ in
+            Task { @MainActor in
+                self?.coordinator.openDiagnostics()
+            }
+        }
+
         if !preferencesStore.config.isOnboardingCompleted {
             coordinator.openOnboarding()
         } else if preferencesStore.config.showPreferencesOnLaunch {
             coordinator.openPreferences()
         }
+    }
+
+    func applicationDidBecomeActive(_ notification: Notification) {
+        // User may have just toggled Accessibility — recheck without prompting.
+        _ = PrivacyPermissions.enrollAccessibility(prompt: false)
+        statusController?.accessibilityTrustMayHaveChanged()
     }
 
     func handleIncomingURL(_ url: URL) {
@@ -253,8 +307,11 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
             statusController?.expand()
         case "collapse":
             _ = statusController?.collapse()
-        case "icebar":
-            statusController?.openIceBar()
+        case "reveal-panel", "revealpanel", "icebar":
+            // `icebar` kept as a deprecated URL alias for older scripts.
+            statusController?.openRevealPanel()
+        case "dismiss-panel":
+            statusController?.dismissRevealPanel()
         case "profile":
             if let profileName = pathComponents.first, profileStore.switchProfile(named: profileName) {
                 HiddenMenuBarTelemetry.commandExecution.info("Profile command accepted: \(profileName, privacy: .private)")
@@ -268,10 +325,14 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
                 coordinator.openPreferences()
             } else if pathComponents.first == "diagnostics" {
                 coordinator.openDiagnostics()
+            } else if pathComponents.first == "accessibility" || pathComponents.first == "privacy" {
+                PrivacyPermissions.requestAccessibilityAccessAndShowSettings()
             } else {
                 HiddenMenuBarTelemetry.commandExecution.warning("Open command rejected")
                 preferencesStore.recordIgnoredURL(url.absoluteString)
             }
+        case "privacy", "accessibility":
+            PrivacyPermissions.requestAccessibilityAccessAndShowSettings()
         default:
             HiddenMenuBarTelemetry.commandExecution.warning("Unknown URL command: \(host, privacy: .public)")
             preferencesStore.recordIgnoredURL(url.absoluteString)

@@ -52,4 +52,16 @@ enum StatusItemDefaults {
         }
         setPreferredPosition(section.seedPreferredPosition, for: section.autosaveName)
     }
+
+    /// Force-seed every control section. Used when live geometry proves markers
+    /// drifted off-screen; macOS re-reads preferred positions on next item birth.
+    static func resetAllToSeed() {
+        for section in ControlSection.allCases {
+            setPreferredPosition(section.seedPreferredPosition, for: section.autosaveName)
+        }
+    }
+
+    static func clearPreferredPosition(for autosaveName: String) {
+        UserDefaults.standard.removeObject(forKey: key(for: autosaveName))
+    }
 }

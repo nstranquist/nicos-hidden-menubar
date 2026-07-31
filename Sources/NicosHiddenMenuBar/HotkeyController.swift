@@ -12,6 +12,8 @@ final class HotkeyController: ObservableObject {
     private var eventHandler: EventHandlerRef?
     private var cancellables: Set<AnyCancellable> = []
     private let signature: OSType = 0x4e48424d
+    private var lastTriggerUptime: TimeInterval = 0
+    private static let triggerDebounce: TimeInterval = 0.75
 
     init(
         preferencesStore: PreferencesStore = .shared,
@@ -49,7 +51,7 @@ final class HotkeyController: ObservableObject {
             { _, _, userData in
                 guard let userData else { return noErr }
                 let controller = Unmanaged<HotkeyController>.fromOpaque(userData).takeUnretainedValue()
-                controller.onTrigger()
+                controller.triggerIfAllowed()
                 return noErr
             },
             1,
@@ -84,5 +86,12 @@ final class HotkeyController: ObservableObject {
             RemoveEventHandler(eventHandler)
             self.eventHandler = nil
         }
+    }
+
+    private func triggerIfAllowed() {
+        let now = ProcessInfo.processInfo.systemUptime
+        guard now - lastTriggerUptime >= Self.triggerDebounce else { return }
+        lastTriggerUptime = now
+        onTrigger()
     }
 }

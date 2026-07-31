@@ -17,6 +17,21 @@ enum FirstPartyVisibleTitles {
         return result
     }
 
+    /// Migrates legacy title/legacy-key entries into versioned identity keys
+    /// without dropping recognisable values (ITEM-001-B).
+    static func migratePolicyKeys(_ keys: [String]) -> [String] {
+        sanitize(keys).map { key in
+            if key.hasPrefix("v1:") {
+                return key
+            }
+            if key.contains(":") {
+                return MenuBarItemIdentity.migrateLegacyKey(key).key
+            }
+            // Bare display titles stay as-is for advisory matching.
+            return key
+        }
+    }
+
     static func candidateTitles(configTitles: [String], bridgeTitles: [String]) -> [String] {
         sanitize(bridgeTitles + configTitles + HiddenBarConfig.default.firstPartyVisible.preferredVisibleTitles)
     }

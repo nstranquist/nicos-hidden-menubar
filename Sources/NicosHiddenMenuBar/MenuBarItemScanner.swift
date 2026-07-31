@@ -25,8 +25,9 @@ enum MenuBarItemScanner {
         var leftmostMinX: Double?
         /// True when the target screen has a notch (safe-area inset at top).
         var hasNotch: Bool
-        /// True when at least one hideable item is fully past the visible right
-        /// edge — i.e. a collapse actually hid something.
+        /// Legacy placement observation: at least one item is parked past the
+        /// visible right edge. Spacer collapse is verified by exact rendered
+        /// window IDs instead.
         var anyItemHiddenPastEdge: Bool
     }
 
@@ -62,15 +63,33 @@ enum MenuBarItemScanner {
         screen.safeAreaInsets.top > 0
     }
 
-    /// Enriched scan: every on-screen menu bar item on `screen` with owner app,
-    /// title, and identity, sorted left→right. Feeds the IceBar, search, and the
-    /// section model. Read-only.
+    /// Enriched scan: menu bar items for `screen` with owner app, title, and
+    /// identity, sorted left→right. Includes items parked past the visible right
+    /// edge (collapse-time placement hide) so the reveal panel can reach them.
     @MainActor
-    static func detailedItems(screen: NSScreen) -> [MenuBarWindowInfo] {
+    static func detailedItems(screen: NSScreen, includeParkedPastEdge: Bool = true) -> [MenuBarWindowInfo] {
         let screenFrame = screen.frame
-        return MenuBarBridging.onScreenMenuBarWindowIDs()
+        let visibleMaxX = Double(screen.visibleFrame.maxX)
+        // Prefer full menu-bar list when we need parked (off-edge) items.
+        let ids = includeParkedPastEdge
+            ? MenuBarBridging.allMenuBarWindowIDs()
+            : MenuBarBridging.onScreenMenuBarWindowIDs()
+        return ids
             .compactMap { MenuBarWindowInfo.read(windowID: $0) }
-            .filter { $0.frame.midX >= screenFrame.minX && $0.frame.midX <= screenFrame.maxX }
+            .filter { info in
+                guard !info.isMenuBarBackdrop else {
+                    return false
+                }
+                let mid = Double(info.frame.midX)
+                if mid >= screenFrame.minX && mid <= screenFrame.maxX {
+                    return true
+                }
+                // Parked past the right edge of this display's menu bar.
+                if includeParkedPastEdge, Double(info.frame.minX) >= visibleMaxX - 1 {
+                    return true
+                }
+                return false
+            }
             .sorted { $0.frame.minX < $1.frame.minX }
     }
 
@@ -94,9 +113,9 @@ enum MenuBarItemScanner {
             return Double(item.frame.maxX) <= toggleMinX
         }
 
-        // After a collapse the spacer shoves hidden items rightward, past the
-        // visible edge — so check every item, not just the pre-collapse hideable
-        // subset (those items are no longer left of the toggle once pushed out).
+        // Explicit placement may park an item past the visible right edge.
+        // Spacer collapse moves the lane left/off-screen and is intentionally
+        // verified elsewhere using the pre-transition rendered window IDs.
         let anyHidden: Bool = {
             guard let visibleMaxX else {
                 return false

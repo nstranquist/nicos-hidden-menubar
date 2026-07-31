@@ -3,12 +3,9 @@ import CoreGraphics
 import Foundation
 import ScreenCaptureKit
 
-/// Captures images of menu bar items so the IceBar can render hidden items in a
-/// popover instead of cramming them back into the menu bar. Same idea as Ice's
-/// `MenuBarItemImageCache`, using the modern one-shot `SCScreenshotManager`.
-///
-/// Requires Screen Recording permission. Callers degrade gracefully to text
-/// labels when capture is unavailable.
+/// Captures images of menu bar items so the RevealPanel can render icons.
+/// Uses ScreenCaptureKit when permission and a matching window are available;
+/// otherwise returns nil so the UI uses SF Symbols / app icons.
 enum MenuBarItemImageCapture {
     struct CapturedItem: Sendable {
         var info: MenuBarItemInfo
@@ -18,49 +15,49 @@ enum MenuBarItemImageCapture {
         var image: CGImage?
     }
 
-    /// True when Screen Recording permission is granted (required for capture).
     static func hasScreenRecordingPermission() -> Bool {
         CGPreflightScreenCaptureAccess()
     }
 
-    /// Request Screen Recording permission (shows the system prompt once).
     @discardableResult
     static func requestScreenRecordingPermission() -> Bool {
         CGRequestScreenCaptureAccess()
     }
 
-    /// Capture images for the given items on `screen`. Returns items in input
-    /// order; `image` is nil for any item that couldn't be captured.
     @MainActor
     static func capture(items: [MenuBarWindowInfo], on screen: NSScreen) async -> [CapturedItem] {
-        guard hasScreenRecordingPermission(), !items.isEmpty else {
-            return items.map {
-                CapturedItem(info: $0.info, displayName: $0.displayName, windowID: $0.windowID, frame: $0.frame, image: nil)
-            }
+        guard !items.isEmpty else { return [] }
+
+        // Always attempt the permission path even if preflight is flaky; when
+        // denied the UI falls back to symbols/app icons.
+        if !hasScreenRecordingPermission() {
+            // Kick the TCC prompt once so the user can enable Screen Recording.
+            _ = requestScreenRecordingPermission()
         }
 
-        let displayID = screen.displayID
-        let content: SCShareableContent
-        do {
-            content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
-        } catch {
-            HiddenMenuBarTelemetry.menuBar.error("SCShareableContent failed: \(error.localizedDescription)")
-            return items.map {
-                CapturedItem(info: $0.info, displayName: $0.displayName, windowID: $0.windowID, frame: $0.frame, image: nil)
-            }
-        }
-
-        let scWindowsByID = Dictionary(
-            content.windows.map { (CGWindowID($0.windowID), $0) },
-            uniquingKeysWith: { first, _ in first }
-        )
         let scale = screen.backingScaleFactor
+        var scWindowsByID: [CGWindowID: SCWindow] = [:]
+        if hasScreenRecordingPermission() {
+            do {
+                let content = try await SCShareableContent.excludingDesktopWindows(false, onScreenWindowsOnly: false)
+                scWindowsByID = Dictionary(
+                    content.windows.map { (CGWindowID($0.windowID), $0) },
+                    uniquingKeysWith: { first, _ in first }
+                )
+            } catch {
+                HiddenMenuBarTelemetry.menuBar.error(
+                    "SCShareableContent failed: \(error.localizedDescription, privacy: .public)"
+                )
+            }
+        }
 
         var results: [CapturedItem] = []
+        results.reserveCapacity(items.count)
         for item in items {
-            var image: CGImage?
-            if let scWindow = scWindowsByID[item.windowID] {
-                image = await captureWindow(scWindow, scale: scale)
+            let image: CGImage? = if let scWindow = scWindowsByID[item.windowID] {
+                await captureWindowSC(scWindow, scale: scale)
+            } else {
+                nil
             }
             results.append(
                 CapturedItem(
@@ -71,26 +68,31 @@ enum MenuBarItemImageCapture {
                     image: image
                 )
             )
+            await Task.yield()
         }
-        _ = displayID
         return results
     }
 
     @MainActor
-    private static func captureWindow(_ window: SCWindow, scale: CGFloat) async -> CGImage? {
+    private static func captureWindowSC(_ window: SCWindow, scale: CGFloat) async -> CGImage? {
         let filter = SCContentFilter(desktopIndependentWindow: window)
         let config = SCStreamConfiguration()
-        config.width = Int(window.frame.width * scale)
-        config.height = Int(window.frame.height * scale)
+        // Menu bar items are tiny — oversample so icons stay sharp.
+        let w = max(24, Int(window.frame.width * scale * 2))
+        let h = max(24, Int(window.frame.height * scale * 2))
+        config.width = w
+        config.height = h
         config.showsCursor = false
         config.ignoreShadowsSingleWindow = true
         config.scalesToFit = true
         do {
             return try await SCScreenshotManager.captureImage(contentFilter: filter, configuration: config)
         } catch {
+            HiddenMenuBarTelemetry.menuBar.debug("SC capture failed for window")
             return nil
         }
     }
+
 }
 
 extension NSScreen {

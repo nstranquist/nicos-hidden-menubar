@@ -6,12 +6,19 @@ struct MenuBarDisplayHandle: Hashable, Sendable {
 }
 
 struct MenuBarItemHandle: Hashable, Sendable {
-    // Transient until ITEM-001 introduces versioned stable identity.
     var windowID: UInt32
+    /// Durable identity when known; windowID remains the live handle.
+    var identity: MenuBarItemIdentity?
+
+    init(windowID: UInt32, identity: MenuBarItemIdentity? = nil) {
+        self.windowID = windowID
+        self.identity = identity
+    }
 }
 
 struct MenuBarDiscoveredItem: Equatable, Sendable {
     var handle: MenuBarItemHandle
+    var identity: MenuBarItemIdentity
     var ownerPID: Int32
     var ownerName: String
     var title: String
@@ -50,6 +57,8 @@ enum MenuBarPlacementError: Error, Equatable, Sendable {
     case itemNotMovable
     case targetUnavailable
     case unsupportedLane(MenuBarLane)
+    case timedOut
+    case cancelled
     case failed(String)
 }
 
@@ -57,19 +66,59 @@ struct MenuBarActivationRequest: Equatable, Sendable {
     var item: MenuBarItemHandle
     var targetDisplay: MenuBarDisplayHandle
     var visibleAnchor: MenuBarItemHandle
+    /// Prefer opening the item where it is (panel path). When false and
+    /// experimental movement is on, may relocate into the visible lane first.
+    var preferInPlace: Bool
+
+    init(
+        item: MenuBarItemHandle,
+        targetDisplay: MenuBarDisplayHandle,
+        visibleAnchor: MenuBarItemHandle,
+        preferInPlace: Bool = true
+    ) {
+        self.item = item
+        self.targetDisplay = targetDisplay
+        self.visibleAnchor = visibleAnchor
+        self.preferInPlace = preferInPlace
+    }
 }
 
+/// Explicit panel-activation outcomes (item-lifecycle ACT-001 contract).
 enum MenuBarActivationOutcome: Equatable, Sendable {
+    /// Selected menu opened in place.
+    case activated
+    /// Item was moved into the visible lane so the user can click it.
     case revealedForActivation
-    case permissionRequired
+    /// Named permission is missing; UI should offer repair.
+    case permissionRequired(permission: String)
+    /// Not safely activatable; reason is operator-facing.
     case unsupported(reason: String)
-    case failed(reason: String)
+    /// Failed; caller should treat state as recovered / non-destructive.
+    case failedRecovered(reason: String)
+
+    /// Legacy alias used by older diagnostics.
+    static func failed(reason: String) -> MenuBarActivationOutcome {
+        .failedRecovered(reason: reason)
+    }
 }
 
 struct MenuBarCapturedItem: Sendable {
     var item: MenuBarDiscoveredItem
     var image: CGImage?
     var scale: Double
+    var isPlaceholder: Bool
+
+    init(
+        item: MenuBarDiscoveredItem,
+        image: CGImage? = nil,
+        scale: Double = 1,
+        isPlaceholder: Bool = false
+    ) {
+        self.item = item
+        self.image = image
+        self.scale = scale
+        self.isPlaceholder = isPlaceholder
+    }
 }
 
 enum MenuBarDiagnosticCategory: String, Equatable, Sendable {
@@ -155,10 +204,18 @@ protocol MenuBarItemActivating {
 
 @MainActor
 protocol MenuBarItemCapturing {
+    /// Full batch capture (blocking until complete). Prefer `captureIncremental`.
     func capture(
         _ items: [MenuBarDiscoveredItem],
         on display: MenuBarDisplayHandle
     ) async -> [MenuBarCapturedItem]
+
+    /// Shell-first: emit placeholders immediately, then fill icons as ready.
+    func captureIncremental(
+        _ items: [MenuBarDiscoveredItem],
+        on display: MenuBarDisplayHandle,
+        onUpdate: @escaping @MainActor ([MenuBarCapturedItem]) -> Void
+    ) async
 }
 
 @MainActor
@@ -173,4 +230,20 @@ struct MenuBarServices {
     let activation: any MenuBarItemActivating
     let capture: any MenuBarItemCapturing
     let diagnostics: any MenuBarDiagnosticsRecording
+}
+
+/// Default incremental path for capturers that only implement batch capture.
+extension MenuBarItemCapturing {
+    func captureIncremental(
+        _ items: [MenuBarDiscoveredItem],
+        on display: MenuBarDisplayHandle,
+        onUpdate: @escaping @MainActor ([MenuBarCapturedItem]) -> Void
+    ) async {
+        let placeholders = items.map {
+            MenuBarCapturedItem(item: $0, image: nil, scale: 1, isPlaceholder: true)
+        }
+        onUpdate(placeholders)
+        let final = await capture(items, on: display)
+        onUpdate(final)
+    }
 }

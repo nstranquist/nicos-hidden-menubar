@@ -15,12 +15,33 @@ struct MenuBarCollapsePlan: Equatable, Sendable {
     var useCompactFallback: Bool
     var toggleMinX: Double?
     var targetDisplayID: UInt32?
+    /// Items that were visible in a hidden lane immediately before a spacer
+    /// collapse. Live verification must observe all of them off-screen before
+    /// the state may remain collapsed.
+    var verificationWindowIDs: [UInt32] = []
+    /// How items were (or will be) hidden. Spacer inflates a divider; placement
+    /// moves hidden-lane items past the visible edge.
+    var hideMechanism: MenuBarHideMechanism = .spacer
+}
+
+enum MenuBarHideMechanism: String, Equatable, Sendable {
+    case spacer
+    case placement
 }
 
 enum MenuBarCollapseFailure: String, Equatable, Sendable {
     case invalidMarkerOrder = "invalid_marker_order"
     case unreadableGeometry = "geometry_unreadable"
     case reconciliationFailed = "reconciliation_failed"
+    /// Markers exist relative-order-valid but sit outside the target screen
+    /// (autosave drift / multi-display orphan). Live evidence: minX ≈ −3780.
+    case markersOffScreen = "markers_off_screen"
+    /// Toggle has no hideable neighbors; inflating a spacer would only blank the bar.
+    case nothingToHide = "nothing_to_hide"
+    /// Real hide (spacer or placement) could not move any item off-screen.
+    case hideUnavailable = "hide_unavailable"
+    /// Collapse-time placement needs Accessibility.
+    case accessibilityRequired = "accessibility_required"
 }
 
 enum MenuBarInput: Equatable, Sendable {
