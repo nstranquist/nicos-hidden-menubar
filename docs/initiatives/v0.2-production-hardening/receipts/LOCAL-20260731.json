@@ -41,7 +41,7 @@
       "process": "/Applications/NicosHiddenMenuBar.app/Contents/MacOS/NicosHiddenMenuBar",
       "bundle_id": "com.nstranquist.nicos-hidden-menubar",
       "cdhash": "d377acd3326504f8fb5b91b41c289cf7c55d3769",
-      "signing_authority": "Apple Development: developer@example.invalid (ABCDEFGHIJ)",
+      "signing_authority": "Apple Development (identity redacted)",
       "archived_legacy_launch_agent": "~/.config/nicos-hidden-menubar/legacy-launch-agents/com.nstranquist.nicos-menubar.20260731T232300Z.plist.disabled"
     }
   ],

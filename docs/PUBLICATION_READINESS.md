@@ -2,11 +2,13 @@
 
 Status: **locally cleared; publication remains human-gated**<br>
 Owner: `nstranquist`<br>
-Reviewed: 2026-07-31
+Reviewed: 2026-08-12
 
 ## Cleared locally
 
-- GPL-3.0 license and `NOTICE` preserve Ice attribution and compatible terms.
+- GPL-3.0 license, `NOTICE`, and `CONTRIBUTING.md` preserve Ice
+  (`jordanbaird/Ice`) attribution and compatible terms.
+- `SECURITY.md` and `CHANGELOG.md` exist at the repository root.
 - Nico-owned copyright and the `nstranquist` publication identity are explicit.
 - Full-history and working-tree gitleaks pass; no excluded prior-employer
   identity, domain, source, asset, or publication marker is present.
@@ -41,6 +43,8 @@ Reviewed: 2026-07-31
   bundle remains untouched.
 - The current local closeout evidence is recorded in
   [`LOCAL-20260731.json`](initiatives/v0.2-production-hardening/receipts/LOCAL-20260731.json).
+- The 2026-08-12 source-publication rerun is recorded in
+  [`PUBLICATION-20260812.json`](initiatives/v0.2-production-hardening/receipts/PUBLICATION-20260812.json).
 
 ## Visible local debt
 
@@ -52,6 +56,9 @@ Reviewed: 2026-07-31
   hardware acceptance remain open.
 
 ## Human-gated publication steps
+
+These steps remain human-only. `github.com/nstranquist/nicos-hidden-menubar`
+is not live. This checklist does not create, push, or flip that repository.
 
 1. Review the final GitHub rendering of README and screenshot.
 2. Create and push the public repository under `github.com/nstranquist`.

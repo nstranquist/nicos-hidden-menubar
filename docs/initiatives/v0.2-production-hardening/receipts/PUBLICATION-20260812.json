@@ -1,0 +1,40 @@
+{
+  "schema_version": 1,
+  "observed_at": "2026-08-12T18:20:05Z",
+  "scope": "local_source_publication_gate",
+  "source_head": "b9f360d5acb43d657afa2da7565683fe465e88d2",
+  "command": "make publish-ready",
+  "exit_code": 0,
+  "checks": {
+    "swift_tests": {
+      "status": "passed",
+      "count": 162
+    },
+    "scripts_check": "passed",
+    "format_debt_ratchet": {
+      "status": "passed",
+      "baseline_findings": 469,
+      "claim": "no increase"
+    },
+    "documentation": {
+      "status": "passed",
+      "requirements": 11,
+      "acceptance_criteria": 24
+    },
+    "release_build_warnings_as_errors": "passed",
+    "gitleaks_history": "passed",
+    "gitleaks_working_tree": "passed"
+  },
+  "public_state": {
+    "github_repository": "absent_signed_out",
+    "origin_read": "repository_not_found",
+    "published": false
+  },
+  "evidence_boundary": "This receipt proves local source-publication readiness only. It does not prove a public repository, public CI, notarized distribution, clean-machine install, or external adoption.",
+  "remaining_human_gates": [
+    "Review the final README and privacy-safe screenshot.",
+    "Create the public github.com/nstranquist/nicos-hidden-menubar repository.",
+    "Push only after explicit approval.",
+    "Confirm public CI and complete a signed-out review before pinning."
+  ]
+}

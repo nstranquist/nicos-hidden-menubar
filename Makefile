@@ -162,6 +162,7 @@ format-check:
 
 scripts-check:
 	go test ./scripts/perf_gate.go ./scripts/perf_gate_test.go
+	go test ./scripts/spec_evidence.go ./scripts/spec_evidence_test.go
 
 # Headless launch-verify: boot + open preferences off-screen, assert no foreground.
 headless-smoke:

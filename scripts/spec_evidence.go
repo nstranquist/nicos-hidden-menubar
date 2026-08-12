@@ -76,6 +76,7 @@ func main() {
 	m, problems := parseManifest(manifestPath)
 	problems = append(problems, validateManifest(m, root)...)
 	problems = append(problems, validateMarkdownLinks(filepath.Join(root, "docs"), root)...)
+	problems = append(problems, validateLocalCloseoutReceipt(root)...)
 	if len(problems) > 0 {
 		sort.Strings(problems)
 		for _, problem := range problems {
@@ -307,6 +308,36 @@ func hasHardwareMetadata(records []evidenceRecord) bool {
 		}
 	}
 	return false
+}
+
+var localCloseoutReceiptRel = filepath.Join(
+	"docs", "initiatives", "v0.2-production-hardening", "receipts", "LOCAL-20260731.json",
+)
+
+var forbiddenReceiptIdentity = []string{
+	"developer@example.invalid",
+	"Apple Development:",
+	"ABCDEFGHIJ",
+}
+
+func validateLocalCloseoutReceipt(root string) []string {
+	path := filepath.Join(root, localCloseoutReceiptRel)
+	body, err := os.ReadFile(path)
+	if err != nil {
+		return []string{fmt.Sprintf("local closeout receipt missing: %s", filepath.ToSlash(localCloseoutReceiptRel))}
+	}
+	return receiptIdentityProblems(filepath.ToSlash(localCloseoutReceiptRel), body)
+}
+
+func receiptIdentityProblems(label string, body []byte) []string {
+	text := string(body)
+	var problems []string
+	for _, token := range forbiddenReceiptIdentity {
+		if strings.Contains(text, token) {
+			problems = append(problems, fmt.Sprintf("%s contains redacted identity token %q", label, token))
+		}
+	}
+	return problems
 }
 
 func validateMarkdownLinks(docsRoot, repoRoot string) []string {

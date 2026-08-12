@@ -98,6 +98,37 @@ func TestImplementedAndShippedProof(t *testing.T) {
 	}
 }
 
+func TestReceiptIdentityProblemsRejectsPersonalSigningIdentity(t *testing.T) {
+	dirty := []byte(`{"signing_authority":"Apple Development: developer@example.invalid (ABCDEFGHIJ)"}`)
+	problems := receiptIdentityProblems("receipt.json", dirty)
+	if !containsProblem(problems, "developer@example.invalid") || !containsProblem(problems, "Apple Development:") || !containsProblem(problems, "ABCDEFGHIJ") {
+		t.Fatalf("dirty receipt was not fully rejected: %v", problems)
+	}
+
+	clean := []byte(`{"signing_authority":"Apple Development (identity redacted)"}`)
+	if problems := receiptIdentityProblems("receipt.json", clean); len(problems) != 0 {
+		t.Fatalf("redacted receipt was rejected: %v", problems)
+	}
+}
+
+func TestLocalCloseoutReceiptOnDiskHasNoIdentity(t *testing.T) {
+	root, err := filepath.Abs("..")
+	if err != nil {
+		t.Fatal(err)
+	}
+	problems := validateLocalCloseoutReceipt(root)
+	if len(problems) != 0 {
+		t.Fatalf("checked-in closeout receipt still has identity: %v", problems)
+	}
+}
+
+func TestValidateLocalCloseoutReceiptRequiresFile(t *testing.T) {
+	problems := validateLocalCloseoutReceipt(t.TempDir())
+	if !containsProblem(problems, "local closeout receipt missing") {
+		t.Fatalf("missing receipt was not rejected: %v", problems)
+	}
+}
+
 func containsProblem(problems []string, want string) bool {
 	for _, problem := range problems {
 		if strings.Contains(problem, want) {
