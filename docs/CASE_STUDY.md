@@ -42,14 +42,14 @@ stealing focus. Three live cycles on the built-in notched display each verified
 eight hidden-lane items removed while two standalone third-party items and two
 system items remained visible. The reviewed screenshot is committed at
 `docs/assets/preferences-window.png` (current Layout tab; no personal menu-bar
-or account data). The ready-to-run GitHub Actions workflow
-executes the same publication boundary on macOS; it is local evidence until a
-public run exists.
+or account data). Public GitHub Actions CI on `main` runs the same publication
+boundary on macOS.
 
 ## Evidence boundary
 
-The repository is locally ready for GPL-3.0 publication under `nstranquist`,
-but no public push or public CI is claimed. The screenshot contains only the
+The source is public at
+[`nstranquist/nicos-hidden-menubar`](https://github.com/nstranquist/nicos-hidden-menubar)
+under GPL-3.0. The screenshot contains only the
 application’s synthetic/default settings surface and no operator menu-bar,
 configuration, account, or diagnostic data. External-display, Control Center
 activation, repeated successful movement, Screen Recording icon completion,
