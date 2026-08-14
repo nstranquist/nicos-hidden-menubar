@@ -1,7 +1,7 @@
 import AppKit
 import CoreGraphics
 import Foundation
-import ScreenCaptureKit
+@preconcurrency import ScreenCaptureKit
 
 /// Captures images of menu bar items so the RevealPanel can render icons.
 /// Uses ScreenCaptureKit when permission and a matching window are available;
