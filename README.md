@@ -1,5 +1,7 @@
 # Nicos Hidden Bar
 
+[![CI](https://github.com/nstranquist/nicos-hidden-menubar/actions/workflows/ci.yml/badge.svg)](https://github.com/nstranquist/nicos-hidden-menubar/actions/workflows/ci.yml)
+
 A native macOS menu-bar organizer for hiding the status items you do not need
 all the time. It is local-first, has no account or network service, and is built
 with Swift, AppKit, and SwiftUI.
