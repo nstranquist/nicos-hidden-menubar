@@ -314,11 +314,17 @@ var localCloseoutReceiptRel = filepath.Join(
 	"docs", "initiatives", "v0.2-production-hardening", "receipts", "LOCAL-20260731.json",
 )
 
-var forbiddenReceiptIdentity = []string{
-	"developer@example.invalid",
-	"Apple Development:",
-	"ABCDEFGHIJ",
-}
+var (
+	forbiddenReceiptIdentity = []string{
+		"Apple Development:",
+	}
+	signingAuthorityEmailPattern = regexp.MustCompile(
+		`(?i)"signing_authority"\s*:\s*"[^"]*@[^"]*"`,
+	)
+	signingAuthorityTeamPattern = regexp.MustCompile(
+		`(?i)"signing_authority"\s*:\s*"[^"]*\([A-Z0-9]{10}\)[^"]*"`,
+	)
+)
 
 func validateLocalCloseoutReceipt(root string) []string {
 	path := filepath.Join(root, localCloseoutReceiptRel)
@@ -336,6 +342,12 @@ func receiptIdentityProblems(label string, body []byte) []string {
 		if strings.Contains(text, token) {
 			problems = append(problems, fmt.Sprintf("%s contains redacted identity token %q", label, token))
 		}
+	}
+	if signingAuthorityEmailPattern.Match(body) {
+		problems = append(problems, fmt.Sprintf("%s contains an unredacted signing-authority email", label))
+	}
+	if signingAuthorityTeamPattern.Match(body) {
+		problems = append(problems, fmt.Sprintf("%s contains an unredacted signing-authority team identifier", label))
 	}
 	return problems
 }

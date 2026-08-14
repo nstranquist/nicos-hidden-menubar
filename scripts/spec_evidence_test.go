@@ -101,7 +101,7 @@ func TestImplementedAndShippedProof(t *testing.T) {
 func TestReceiptIdentityProblemsRejectsPersonalSigningIdentity(t *testing.T) {
 	dirty := []byte(`{"signing_authority":"Apple Development: developer@example.invalid (ABCDEFGHIJ)"}`)
 	problems := receiptIdentityProblems("receipt.json", dirty)
-	if !containsProblem(problems, "developer@example.invalid") || !containsProblem(problems, "Apple Development:") || !containsProblem(problems, "ABCDEFGHIJ") {
+	if !containsProblem(problems, "Apple Development:") || !containsProblem(problems, "signing-authority email") || !containsProblem(problems, "team identifier") {
 		t.Fatalf("dirty receipt was not fully rejected: %v", problems)
 	}
 

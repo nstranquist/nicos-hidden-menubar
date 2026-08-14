@@ -41,7 +41,8 @@ and a native smoke that opens and captures the real settings window without
 stealing focus. Three live cycles on the built-in notched display each verified
 eight hidden-lane items removed while two standalone third-party items and two
 system items remained visible. The reviewed screenshot is committed at
-`docs/assets/preferences-window.png`. The ready-to-run GitHub Actions workflow
+`docs/assets/preferences-window.png` (current Layout tab; no personal menu-bar
+or account data). The ready-to-run GitHub Actions workflow
 executes the same publication boundary on macOS; it is local evidence until a
 public run exists.
 

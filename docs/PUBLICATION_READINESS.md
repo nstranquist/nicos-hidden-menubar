@@ -57,11 +57,31 @@ Reviewed: 2026-08-12
 
 ## Human-gated publication steps
 
-These steps remain human-only. `github.com/nstranquist/nicos-hidden-menubar`
-is not live. This checklist does not create, push, or flip that repository.
+`github.com/nstranquist/nicos-hidden-menubar` is not live. This checklist does
+not create, push, or flip that repository.
 
-1. Review the final GitHub rendering of README and screenshot.
-2. Create and push the public repository under `github.com/nstranquist`.
+1. **Done 2026-08-12.** Reviewed README, brand SVG, and screenshot as a
+   signed-out visitor would see them.
+   - Replaced the committed settings image with a current Layout-tab capture
+     from `make headless-smoke` (no personal menu-bar, account, or email).
+   - README clone URL, Ice attribution, LICENSE/NOTICE/SECURITY/CHANGELOG
+     links, and screenshot alt text now match the current UI.
+   - Removed the operator-only `NicosDev` launch-agent note from the README.
+   - Remaining known limit: git history still contains the redacted Apple
+     Development identity in an earlier commit. No history rewrite.
+2. **Create and push** the public repository. Exact local command, not run:
+   ```bash
+   cd ~/tools/nicos-hidden-menubar
+   gh repo create nstranquist/nicos-hidden-menubar \
+     --public \
+     --description "Native macOS menu-bar organizer with notch-safe hide/reveal. Local-first, GPL-3.0." \
+     --disable-wiki
+   git push -u origin main
+   gh repo edit nstranquist/nicos-hidden-menubar \
+     --add-topic macos --add-topic swift --add-topic menubar \
+     --add-topic gpl --add-topic local-first --add-topic oss
+   ```
+   Origin is already `git@github.com:nstranquist/nicos-hidden-menubar.git`.
 3. Confirm the already-defined public CI passes `make verify-publication`.
 4. Complete a signed-out repository review before pinning it.
 

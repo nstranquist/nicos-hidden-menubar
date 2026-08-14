@@ -11,7 +11,7 @@ with a compact chevron in the menu bar to reveal or collapse them. A searchable
 floating panel provides a notch-safe way to reach hidden items on modern
 MacBooks.
 
-![Nicos Hidden Bar settings showing reveal, permission, auto-collapse, and shortcut controls](docs/assets/preferences-window.png)
+![Nicos Hidden Bar settings: Layout tab with lanes, reveal mode, and chevron color](docs/assets/preferences-window.png)
 
 ## Highlights
 
@@ -47,11 +47,6 @@ make install
 available (Apple Development from your keychain so Accessibility survives
 rebuilds). Ad-hoc is only the fallback when no cert is found. Install path:
 `/Applications/NicosHiddenMenuBar.app`.
-
-The install path retires the pre-0.2 `NicosDev` launch agent and exact legacy
-process, archiving its launch-agent plist under
-`~/.config/nicos-hidden-menubar/legacy-launch-agents/`; the old app bundle is
-left in place as a rollback artifact.
 
 ```bash
 make install-stable   # first time / after ad-hoc: reset AX TCC + open Privacy
@@ -140,10 +135,10 @@ The headless smoke opens and captures the real settings window off-screen while
 asserting that the app never steals focus. Reports and screenshots are written
 under `.local/headless-smoke/` and are ignored by Git.
 
-Local verification (2026-07-29): `swift test` reports **162** package tests green.
+Local verification (2026-08-12): `swift test` reports **162** package tests green.
 Run `make verify-publication && make headless-smoke` before release. The
 reviewed repository screenshot above is copied from that smoke output and
-contains no account, menu-bar, configuration, or other private user data.
+contains no account, menu-bar, or other private user data.
 `make release-artifact` additionally creates a versioned ZIP, SHA-256 digest,
 and provenance receipt under `.local/release/`; the receipt remains explicitly
 not distribution-ready until Developer ID signing and notarization are present.
@@ -181,3 +176,5 @@ Nicos Hidden Bar is released under the GNU General Public License v3.0. Parts of
 its menu-bar discovery and movement design are adapted from
 [Ice](https://github.com/jordanbaird/Ice), also GPL-3.0. See [NOTICE](NOTICE) for
 attribution and [LICENSE](LICENSE) for the complete terms.
+
+Security reporting: [SECURITY.md](SECURITY.md). Changes: [CHANGELOG.md](CHANGELOG.md).
