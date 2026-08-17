@@ -15,6 +15,8 @@ MacBooks.
 
 ![Nicos Hidden Bar settings: Layout tab with lanes, reveal mode, and chevron color](docs/assets/preferences-window.png)
 
+Extra captures go in [screenshots/](screenshots/).
+
 ## Highlights
 
 - Native menu-bar app with no Dock icon during normal use
