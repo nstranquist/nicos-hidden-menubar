@@ -6,14 +6,14 @@ A native macOS menu-bar organizer for hiding the status items you do not need
 all the time. It is local-first, has no account or network service, and is built
 with Swift, AppKit, and SwiftUI.
 
-<img src="assets/brand/nicos-hidden-menubar.svg" width="96" height="96" alt="Nicos Hidden Bar application icon">
+<img src="https://raw.githubusercontent.com/nstranquist/nicos-hidden-menubar/main/assets/brand/nicos-hidden-menubar.png" width="96" height="96" alt="Nicos Hidden Bar application icon">
 
 The app provides three regions—visible, hidden, and optionally always hidden—
 with a compact chevron in the menu bar to reveal or collapse them. A searchable
 floating panel provides a notch-safe way to reach hidden items on modern
 MacBooks.
 
-![Nicos Hidden Bar settings: Layout tab with lanes, reveal mode, and chevron color](docs/assets/preferences-window.png)
+![Nicos Hidden Bar settings: Layout tab with lanes, reveal mode, and chevron color](https://raw.githubusercontent.com/nstranquist/nicos-hidden-menubar/main/docs/assets/preferences-window.png)
 
 Extra captures go in [screenshots/](screenshots/).
 
