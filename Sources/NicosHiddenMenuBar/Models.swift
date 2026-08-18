@@ -71,6 +71,9 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     /// and list them under Overflow. Defaults **on** (opt-out). Config key kept
     /// as `notchSupportEnabled` for decode compatibility.
     var notchSupportEnabled: Bool? = nil
+    /// Opt-in: move overflow / under-notch extras into the hidden lane.
+    /// Off unless explicitly true. Separate from spacer collapse (ADR-0005).
+    var rescueOverflowIntoHiddenLane: Bool? = nil
     /// Bundle IDs / namespaces always listed in the reveal panel (even when fully
     /// visible on the bar). Optional for backward-compatible decode.
     var panelAlwaysShowNamespaces: [String]? = nil
@@ -82,6 +85,8 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     var resolvedChevronColor: ChevronIconColor { chevronColor ?? .white }
     /// Overflow detection is on unless the user explicitly disables it.
     var isNotchSupportEnabled: Bool { notchSupportEnabled ?? true }
+    /// Rescue is off unless the user explicitly opts in.
+    var isRescueOverflowIntoHiddenLaneEnabled: Bool { rescueOverflowIntoHiddenLane ?? false }
     var resolvedPanelAlwaysShowNamespaces: [String] {
         panelAlwaysShowNamespaces ?? []
     }

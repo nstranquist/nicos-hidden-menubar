@@ -70,6 +70,12 @@ final class StatusSectionController: NSObject {
     private var isUserDraggingMenuBarItems = false
     private var userMenuBarDragGlobalMonitor: Any?
     private var userMenuBarDragLocalMonitor: Any?
+    /// Opt-in overflow rescue (not collapse). Debounced; never a collapse fallback.
+    private var overflowRescueWorkItem: DispatchWorkItem?
+    private var overflowRescueTask: Task<Void, Never>?
+    private var overflowRescueGeneration: UInt64 = 1
+    private var alreadyRescuedOverflowIDs: Set<String> = []
+    private var recentUserMoveIDs: Set<String> = []
 
     init(
         preferencesStore: PreferencesStore = .shared,
@@ -1076,6 +1082,7 @@ final class StatusSectionController: NSObject {
                     return
                 }
                 await MainActor.run {
+                    self.noteRecentUserMove(windowID: draggedID)
                     self.revealPanel.presentStatus("Reordered.")
                     self.record("reveal_panel_reorder_succeeded")
                 }
@@ -1118,6 +1125,7 @@ final class StatusSectionController: NSObject {
                     enabled: true
                 )
                 await MainActor.run {
+                    self.noteRecentUserMove(windowID: windowID)
                     self.parkedHideWindowIDs.removeAll { $0 == windowID }
                     self.revealPanel.presentStatus("Moved to menu bar.")
                     self.record("reveal_panel_unhide_succeeded")
@@ -1166,6 +1174,7 @@ final class StatusSectionController: NSObject {
                     enabled: true
                 )
                 await MainActor.run {
+                    self.noteRecentUserMove(windowID: windowID)
                     if !self.parkedHideWindowIDs.contains(windowID) {
                         self.parkedHideWindowIDs.append(windowID)
                     }
@@ -1297,7 +1306,10 @@ final class StatusSectionController: NSObject {
                 forceShow: false
             )
         }
+        overflowRescueGeneration &+= 1
+        alreadyRescuedOverflowIDs.removeAll()
         scheduleGeometryRefresh()
+        scheduleOverflowRescue()
     }
 
     func temporarilyRevealMarkers() {
@@ -1412,6 +1424,7 @@ final class StatusSectionController: NSObject {
         updateToggleAppearance()
         updateMarkerTitles()
         scheduleGeometryRefresh()
+        scheduleOverflowRescue()
     }
 
     private func applyExpandedLengths() {
@@ -1999,5 +2012,181 @@ final class StatusSectionController: NSObject {
     @objc private func menuQuit() {
         record("context_menu_command", category: .appLifecycle, publicFields: ["command": "quit"])
         NSApplication.shared.terminate(nil)
+    }
+
+    // MARK: - Overflow rescue (opt-in; never a collapse fallback)
+
+    fileprivate func noteRecentUserMove(windowID: CGWindowID) {
+        recentUserMoveIDs.insert(String(windowID))
+        if let key = identityKey(for: windowID) {
+            recentUserMoveIDs.insert(key)
+        }
+    }
+
+    fileprivate func scheduleOverflowRescue() {
+        guard !HiddenBarHeadless.isHeadless else { return }
+        guard preferencesStore.config.isRescueOverflowIntoHiddenLaneEnabled else { return }
+        overflowRescueWorkItem?.cancel()
+        let workItem = DispatchWorkItem { [weak self] in
+            self?.runOverflowRescueIfIdle()
+        }
+        overflowRescueWorkItem = workItem
+        DispatchQueue.main.asyncAfter(deadline: .now() + 0.85, execute: workItem)
+    }
+
+    fileprivate func runOverflowRescueIfIdle() {
+        guard !HiddenBarHeadless.isHeadless else { return }
+        guard preferencesStore.config.isRescueOverflowIntoHiddenLaneEnabled else { return }
+        guard toggleState != .collapsed else { return }
+        guard !placementHideSession.isActive, collapseHideTask == nil else { return }
+        guard !isUserDraggingMenuBarItems else { return }
+
+        let snapshot = makeOverflowRescueSnapshot()
+        let decision = OverflowRescuePlanner.decide(snapshot)
+        guard !decision.candidates.isEmpty else { return }
+
+        overflowRescueTask?.cancel()
+        let generation = overflowRescueGeneration
+        overflowRescueTask = Task { [weak self] in
+            guard let self else { return }
+            for candidate in decision.candidates {
+                if Task.isCancelled { return }
+                if generation != self.overflowRescueGeneration { return }
+                if self.placementHideSession.isActive || self.collapseHideTask != nil { return }
+                await self.performOneOverflowRescue(candidate)
+            }
+        }
+    }
+
+    fileprivate func makeOverflowRescueSnapshot() -> OverflowRescuePlanner.Snapshot {
+        let config = preferencesStore.config
+        let screen = revealTargetScreen()
+        let overflow = screen.flatMap(currentOverflowLayout(screen:))
+        let notch = screen.flatMap(currentNotchGeometry(screen:))
+        let hideX = compactPrimaryMinX()
+        let hideID = primarySeparatorItem.button?.window.map { CGWindowID($0.windowNumber) }
+        let ownPID = ProcessInfo.processInfo.processIdentifier
+        let discovered: [MenuBarDiscoveredItem]
+        if let screen {
+            discovered = services.discovery.discoverItems(
+                on: MenuBarDisplayHandle(rawValue: screen.displayID)
+            )
+            lastScan = MenuBarDiscoverySnapshot(
+                items: discovered,
+                hideableItemCount: discovered.count,
+                leftmostMinX: discovered.map(\.frame.minX).min().map(Double.init),
+                hasNotch: notch != nil,
+                anyItemHiddenPastEdge: false
+            )
+        } else {
+            discovered = lastScan?.items ?? []
+        }
+
+        let items = discovered.map { item in
+            OverflowRescuePlanner.Item(
+                identityKey: item.identity.key,
+                windowID: item.handle.windowID,
+                namespace: item.identity.namespace,
+                ownerName: item.ownerName,
+                title: item.title,
+                frame: item.frame,
+                ownerPID: item.ownerPID
+            )
+        }
+
+        let geometryOK = hideX != nil
+            && overflow?.rightUsableMinX != nil
+            && overflow?.rightUsableMaxX != nil
+            && screen != nil
+
+        return OverflowRescuePlanner.Snapshot(
+            items: items,
+            hideSeparatorX: hideX,
+            hideSeparatorWindowID: hideID,
+            laneBounds: currentLaneBounds(screen: screen),
+            notch: notch,
+            overflow: overflow,
+            ownPIDs: [ownPID],
+            recentUserMoveIDs: recentUserMoveIDs,
+            alreadyRescuedIDs: alreadyRescuedOverflowIDs,
+            rescueEnabled: config.isRescueOverflowIntoHiddenLaneEnabled,
+            movementEnabled: config.isExperimentalItemMovementEnabled,
+            notchSupportEnabled: config.isNotchSupportEnabled,
+            permissionsGranted: PrivacyPermissions.isAccessibilityTrusted,
+            geometryReadable: geometryOK
+        )
+    }
+
+    fileprivate func performOneOverflowRescue(_ candidate: OverflowRescuePlanner.Candidate) async {
+        guard let separatorID = candidate.destination.hideSeparatorWindowID ?? primarySeparatorItem.button?.window.map({
+            CGWindowID($0.windowNumber)
+        }) else {
+            record("overflow_rescue_skipped", level: .debug, publicFields: ["reason": "missing_separator"])
+            return
+        }
+
+        let origin = MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
+            ?? candidate.frame
+        do {
+            try await MenuBarItemMover.move(
+                windowID: CGWindowID(candidate.windowID),
+                to: .hiddenLane(
+                    separatorWindowID: separatorID,
+                    expectedMinX: candidate.destination.expectedMinX,
+                    expectedMaxX: candidate.destination.expectedMaxX
+                ),
+                enabled: preferencesStore.config.isExperimentalItemMovementEnabled
+            )
+        } catch {
+            record(
+                "overflow_rescue_move_failed",
+                level: .warning,
+                publicFields: ["reason": String(describing: error)],
+                privateFields: ["identity": candidate.identityKey]
+            )
+            return
+        }
+
+        let post = MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
+            ?? MenuBarBridging.frame(for: CGWindowID(candidate.windowID))
+        let screen = revealTargetScreen()
+        let overflow = screen.flatMap(currentOverflowLayout(screen:))
+        let notch = screen.flatMap(currentNotchGeometry(screen:))
+        let result = OverflowRescuePlanner.evaluateAttempt(
+            postMove: post,
+            overflow: overflow,
+            notch: notch,
+            destination: candidate.destination
+        )
+        switch result {
+        case .success:
+            alreadyRescuedOverflowIDs.insert(candidate.identityKey)
+            alreadyRescuedOverflowIDs.insert(String(candidate.windowID))
+            record(
+                "overflow_rescue_succeeded",
+                publicFields: ["identity": candidate.identityKey]
+            )
+        case .rollbackRequired, .unverified:
+            try? await MenuBarItemMover.move(
+                windowID: CGWindowID(candidate.windowID),
+                to: .restoreOrigin(origin),
+                enabled: preferencesStore.config.isExperimentalItemMovementEnabled
+            )
+            record(
+                "overflow_rescue_rolled_back",
+                level: .warning,
+                publicFields: ["reason": result == .unverified ? "unverified" : "still_overflow"]
+            )
+        }
+    }
+
+    fileprivate func identityKey(for windowID: CGWindowID) -> String? {
+        if let match = lastScan?.items.first(where: { $0.handle.windowID == windowID }) {
+            return match.identity.key
+        }
+        if let info = MenuBarWindowInfo.read(windowID: windowID) {
+            return info.info.identity.key
+        }
+        return nil
     }
 }

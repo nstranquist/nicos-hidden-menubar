@@ -21,12 +21,24 @@ enum MenuBarAccessibilityCatalog {
         return results
     }
 
+    /// Horizontal proximity used by `bestTitle` and the batch assigner.
+    static let defaultMaxDistance: CGFloat = 28
+
+    static func isWithinProximity(
+        extra: CGRect,
+        label: CGRect,
+        maxDistance: CGFloat = defaultMaxDistance
+    ) -> Bool {
+        guard label != .null, label.width > 0 else { return false }
+        return abs(extra.midX - label.midX) < max(extra.width, label.width, maxDistance)
+    }
+
     /// Match a window frame to the nearest AX extras item on the same PID.
     static func bestTitle(
         for frame: CGRect,
         pid: pid_t,
         among labels: [LabeledFrame],
-        maxDistance: CGFloat = 28
+        maxDistance: CGFloat = defaultMaxDistance
     ) -> String? {
         let candidates = labels.filter { $0.pid == pid && !$0.title.isEmpty }
         guard !candidates.isEmpty else { return nil }
@@ -34,12 +46,10 @@ enum MenuBarAccessibilityCatalog {
         // Prefer geometrically matched labels; fall back to title-only AX rows.
         let withGeometry = candidates.filter { $0.frame != .null && $0.frame.width > 0 }
         if !withGeometry.isEmpty {
-            let targetMid = frame.midX
             let best = withGeometry.min { lhs, rhs in
-                abs(lhs.frame.midX - targetMid) < abs(rhs.frame.midX - targetMid)
+                abs(lhs.frame.midX - frame.midX) < abs(rhs.frame.midX - frame.midX)
             }
-            // Require reasonable horizontal proximity (menu bar items are ~20–40pt).
-            guard let best, abs(best.frame.midX - targetMid) < max(frame.width, best.frame.width, maxDistance) else {
+            guard let best, isWithinProximity(extra: frame, label: best.frame, maxDistance: maxDistance) else {
                 return nil
             }
             return best.title

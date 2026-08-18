@@ -784,25 +784,23 @@ final class RevealPanelModel: ObservableObject {
         statusMessage = nil
         var discovered = discovery.discoverItems(on: display)
         // Ensure collapse-parked windows appear even if midX is past the screen.
+        // Same assigner as the main scan — do not fall back to app-only names.
         let known = Set(discovered.map(\.handle.windowID))
-        for windowID in parkedWindowIDs where !known.contains(windowID) {
-            if let info = MenuBarWindowInfo.read(windowID: windowID) {
-                let identity = MenuBarItemIdentity(
-                    namespace: info.info.namespace,
-                    title: info.title ?? ""
+        let parkedInfos = parkedWindowIDs.compactMap { windowID -> MenuBarWindowInfo? in
+            guard !known.contains(windowID) else { return nil }
+            return MenuBarWindowInfo.read(windowID: windowID)
+        }
+        if !parkedInfos.isEmpty {
+            discovered.append(
+                contentsOf: LiveMenuBarDiscoveryService.discoveredItems(
+                    from: parkedInfos,
+                    axLabels: [],
+                    appNameForPID: { pid in
+                        guard pid != 0 else { return nil }
+                        return NSRunningApplication(processIdentifier: pid)?.localizedName
+                    }
                 )
-                discovered.append(
-                    MenuBarDiscoveredItem(
-                        handle: MenuBarItemHandle(windowID: windowID, identity: identity),
-                        identity: identity,
-                        ownerPID: info.ownerPID,
-                        ownerName: info.ownerName ?? "Unknown",
-                        title: info.title ?? "",
-                        displayName: info.displayName,
-                        frame: info.frame
-                    )
-                )
-            }
+            )
         }
         let classified = RevealPanelModel.classifiedCandidates(
             discovered,
@@ -1499,7 +1497,7 @@ private struct RevealPanelView: View {
         VStack(spacing: 3) {
             iconView(for: item)
                 .frame(height: 22)
-            Text(shortLabel(item.item.displayName))
+            Text(MenuBarExtraLabelAssigner.visibleTileLabel(item.item.displayName))
                 .font(.system(size: 9.5, weight: .medium))
                 .lineLimit(1)
                 .truncationMode(.tail)
@@ -1551,10 +1549,6 @@ private struct RevealPanelView: View {
         }
     }
 
-    private func shortLabel(_ name: String) -> String {
-        let head = name.split(separator: "—").first.map(String.init) ?? name
-        return head.trimmingCharacters(in: .whitespaces)
-    }
 }
 
 private enum RevealPanelDrag {

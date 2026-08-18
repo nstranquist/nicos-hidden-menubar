@@ -126,11 +126,49 @@ final class ConfigRoundTripTests: XCTestCase {
         XCTAssertEqual(reloaded.config.globalShortcut.display, "cmd+shift+h")
         XCTAssertEqual(reloaded.config.activeProfile, "focus")
         XCTAssertFalse(reloaded.config.isExperimentalItemMovementEnabled)
+        XCTAssertFalse(reloaded.config.isRescueOverflowIntoHiddenLaneEnabled)
         XCTAssertTrue(reloaded.config.isOnboardingCompleted)
         // Required profiles remain present after customization.
         for name in HiddenBarConfig.requiredProfiles {
             XCTAssertNotNil(reloaded.config.profiles[name])
         }
+    }
+
+    @MainActor
+    func testRescueOverflowDefaultsOffAndRoundTripsWhenOptedIn() throws {
+        XCTAssertFalse(HiddenBarConfig.default.isRescueOverflowIntoHiddenLaneEnabled)
+
+        var decoded = HiddenBarConfig.default
+        decoded.rescueOverflowIntoHiddenLane = nil
+        XCTAssertFalse(decoded.isRescueOverflowIntoHiddenLaneEnabled)
+        let normalized = try decoded.validated()
+        XCTAssertFalse(normalized.isRescueOverflowIntoHiddenLaneEnabled)
+
+        let tempDir = URL(fileURLWithPath: NSTemporaryDirectory())
+            .appendingPathComponent(UUID().uuidString, isDirectory: true)
+        try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
+        let paths = PreferencesStore.Paths(
+            configURL: tempDir.appendingPathComponent("config.json"),
+            diagnosticsURL: tempDir.appendingPathComponent("diagnostics.json"),
+            bridgeURL: tempDir.appendingPathComponent("hammerspoon-bridge.json")
+        )
+        let store = PreferencesStore(
+            paths: paths,
+            fileManager: .default,
+            importer: HiddenBarImporter(loadDefaults: { _ in [:] })
+        )
+        XCTAssertFalse(store.config.isRescueOverflowIntoHiddenLaneEnabled)
+        XCTAssertTrue(store.updateConfig { current in
+            current.rescueOverflowIntoHiddenLane = true
+            current.enableExperimentalItemMovement = true
+        })
+        let reloaded = PreferencesStore(
+            paths: paths,
+            fileManager: .default,
+            importer: HiddenBarImporter(loadDefaults: { _ in [:] })
+        )
+        XCTAssertTrue(reloaded.config.isRescueOverflowIntoHiddenLaneEnabled)
+        XCTAssertTrue(reloaded.config.isExperimentalItemMovementEnabled)
     }
 
     func testCollapseFailureRawValuesAreStableDiagnosticsKeys() {

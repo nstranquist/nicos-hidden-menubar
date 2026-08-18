@@ -179,6 +179,22 @@ struct PreferencesView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
+            Toggle("Rescue overflow into hidden lane", isOn: Binding(
+                get: { preferencesStore.config.isRescueOverflowIntoHiddenLaneEnabled },
+                set: { newValue in
+                    _ = preferencesStore.updateConfig { current in
+                        current.rescueOverflowIntoHiddenLane = newValue
+                    }
+                }
+            ))
+            Text(
+                "Off by default. When on, extras sitting under the camera gap are moved "
+                    + "just left of the hide separator (hidden lane), then verified. "
+                    + "Requires Accessibility and experimental movement. Never runs as a collapse fallback."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text("Overflow")
         } footer: {

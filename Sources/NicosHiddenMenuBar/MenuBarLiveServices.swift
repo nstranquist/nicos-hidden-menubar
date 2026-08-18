@@ -54,29 +54,39 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
     }
 
     /// Assigns versioned identities with ordinal disambiguation (ITEM-001) and
-    /// enriches empty Control Center titles via Accessibility extras menu.
+    /// enriches empty extra titles via one Accessibility extras-menu pass.
     static func discoveredItems(from details: [MenuBarWindowInfo]) -> [MenuBarDiscoveredItem] {
         let pids = Set(details.map(\.ownerPID))
         let axLabels = MenuBarAccessibilityCatalog.labeledFrames(forPIDs: pids)
-
-        let enrichedTitles: [String] = details.map { info in
-            let windowTitle = (info.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines)
-            if !windowTitle.isEmpty { return windowTitle }
-            if let ax = MenuBarAccessibilityCatalog.bestTitle(
-                for: info.frame,
-                pid: info.ownerPID,
-                among: axLabels
-            ) {
-                return ax
-            }
-            return ""
+        return discoveredItems(from: details, axLabels: axLabels) { pid in
+            guard pid != 0 else { return nil }
+            return NSRunningApplication(processIdentifier: pid)?.localizedName
         }
+    }
 
-        let raw = zip(details, enrichedTitles).map { info, title -> (namespace: String, title: String) in
+    /// Same assignment the reveal panel uses after the one-scan AX fetch.
+    /// Hidden and Overflow share this path — no section-specific names.
+    nonisolated static func discoveredItems(
+        from details: [MenuBarWindowInfo],
+        axLabels: [MenuBarAccessibilityCatalog.LabeledFrame],
+        appNameForPID: (pid_t) -> String?
+    ) -> [MenuBarDiscoveredItem] {
+        let extras = details.map { info in
+            MenuBarExtraLabelAssigner.Extra(
+                pid: info.ownerPID,
+                frame: info.frame,
+                windowTitle: (info.title ?? "").trimmingCharacters(in: .whitespacesAndNewlines),
+                ownerName: info.ownerName ?? "",
+                appName: appNameForPID(info.ownerPID)
+            )
+        }
+        let assigned = MenuBarExtraLabelAssigner.assign(extras: extras, axLabels: axLabels)
+
+        let raw = zip(details, assigned).map { info, assignment -> (namespace: String, title: String) in
             let namespace = MenuBarWindowInfo.bundleIdentifier(forPID: info.ownerPID)
                 ?? info.ownerName
                 ?? "unknown"
-            return (namespace, title)
+            return (namespace, assignment.title)
         }
         let identities = MenuBarItemIdentity.resolveScan(raw)
 
@@ -84,11 +94,10 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
         result.reserveCapacity(details.count)
         for index in details.indices {
             let info = details[index]
-            let enrichedTitle = enrichedTitles[index]
+            let assignment = assigned[index]
             let identity = identities[index]
-            let displayName = Self.friendlyDisplayName(
-                info: info,
-                title: enrichedTitle,
+            let displayName = Self.panelDisplayName(
+                assignment: assignment,
                 identity: identity
             )
             result.append(
@@ -97,7 +106,7 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
                     identity: identity,
                     ownerPID: info.ownerPID,
                     ownerName: info.ownerName ?? "Unknown",
-                    title: enrichedTitle,
+                    title: assignment.title,
                     displayName: displayName,
                     frame: info.frame
                 )
@@ -106,35 +115,21 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
         return result
     }
 
-    private static func friendlyDisplayName(
-        info: MenuBarWindowInfo,
-        title: String,
+    /// Control Center keeps module names; everyone else uses the assigner.
+    nonisolated static func panelDisplayName(
+        assignment: MenuBarExtraLabelAssigner.Assignment,
         identity: MenuBarItemIdentity
     ) -> String {
         if let ccName = ControlCenterModules.displayName(
             forModuleID: identity.moduleID,
-            title: title,
+            title: assignment.title,
             ordinal: identity.ordinal
-        ), identity.namespace.lowercased().contains("controlcenter") || identity.namespace == ControlCenterModules.controlCenterNamespace {
+        ), identity.namespace.lowercased().contains("controlcenter")
+            || identity.namespace == ControlCenterModules.controlCenterNamespace
+        {
             return ccName
         }
-        if !title.isEmpty {
-            if info.ownerPID != 0,
-               let app = NSRunningApplication(processIdentifier: info.ownerPID)?.localizedName,
-               app != title {
-                return "\(app) — \(title)"
-            }
-            return title
-        }
-        if info.ownerPID != 0,
-           let app = NSRunningApplication(processIdentifier: info.ownerPID)?.localizedName {
-            return app
-        }
-        if let owner = info.ownerName, !owner.isEmpty, owner.lowercased() != "menubar" {
-            return owner
-        }
-        // CGS-only overflow extras (no owner) — still show a usable label.
-        return "Menu extra"
+        return assignment.displayName
     }
 }
 

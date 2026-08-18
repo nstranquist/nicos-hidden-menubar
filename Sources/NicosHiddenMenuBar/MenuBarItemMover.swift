@@ -2,6 +2,40 @@ import AppKit
 import CoreGraphics
 import Foundation
 
+/// Pure destination / origin match used by `MenuBarItemMover`. Tests drive
+/// these predicates directly — the live mover must not have a private copy.
+enum MenuBarMoveMatch {
+    static let hiddenLaneSlop: Double = 12
+    static let originTolerance: Double = 8
+
+    static func matchesLeftOf(item: CGRect, target: CGRect) -> Bool {
+        item.maxX <= target.minX + 4 || item.midX < target.midX
+    }
+
+    static func matchesRightOf(item: CGRect, target: CGRect) -> Bool {
+        item.minX + 4 >= target.maxX || item.midX > target.midX
+    }
+
+    /// Collapse park: at or past `x` (one-sided). Not valid for origin restore.
+    static func matchesAbsoluteAtOrPast(item: CGRect, x: Double) -> Bool {
+        Double(item.minX) >= x - 16 || Double(item.midX) >= x - 10
+    }
+
+    /// Hidden-lane band from the rescue planner. An under-gap extra (x=753)
+    /// is left of the hide separator but not in this band.
+    static func matchesHiddenLane(item: CGRect, expectedMinX: Double, expectedMaxX: Double) -> Bool {
+        let slop = hiddenLaneSlop
+        return Double(item.minX) >= expectedMinX - slop
+            && Double(item.maxX) <= expectedMaxX + slop
+    }
+
+    /// Two-sided restore: both minX and midX must sit on the pre-move frame.
+    static func matchesOrigin(item: CGRect, origin: CGRect, tolerance: Double = originTolerance) -> Bool {
+        abs(Double(item.minX) - Double(origin.minX)) <= tolerance
+            && abs(Double(item.midX) - Double(origin.midX)) <= tolerance
+    }
+}
+
 // MARK: - Movement engine
 //
 // Port of Ice's MenuBarItemManager technique: synthesize Cmd+drag to move a
@@ -32,6 +66,12 @@ enum MenuBarItemMover {
         case rightOf(targetWindowID: CGWindowID)
         /// Park past the visible menu-bar edge (collapse-time hide).
         case absolute(x: Double, y: Double)
+        /// Two-sided restore of a pre-move frame (overflow-rescue rollback).
+        case restoreOrigin(CGRect)
+        /// Hidden lane: drop left of the hide separator, but only *match*
+        /// when the item is in the planned band — not merely anywhere left
+        /// of the separator (an under-gap extra at x=753 already is).
+        case hiddenLane(separatorWindowID: CGWindowID, expectedMinX: Double, expectedMaxX: Double)
     }
 
     struct Options: Equatable, Sendable {
@@ -142,6 +182,15 @@ enum MenuBarItemMover {
                     grabWaitMilliseconds: 40,
                     restoreCursor: userCursor
                 )
+            case .hiddenLane:
+                try? await performSingleMove(
+                    windowID: windowID,
+                    to: .restoreOrigin(originFrame),
+                    grabWaitMilliseconds: 40,
+                    restoreCursor: userCursor
+                )
+            case .restoreOrigin:
+                break
             }
             cancelStuckDrag(windowID: windowID, pid: item.ownerPID, at: userCursor)
         }
@@ -174,8 +223,8 @@ enum MenuBarItemMover {
         let startPoint = CGPoint(x: 20_000, y: 20_000)
         let releaseWindowID: CGWindowID = {
             switch destination {
-            case .absolute: return windowID
-            case .leftOf, .rightOf: return targetWindowID(for: destination)
+            case .absolute, .restoreOrigin: return windowID
+            case .leftOf, .rightOf, .hiddenLane: return targetWindowID(for: destination)
             }
         }()
         let originFrame = item.frame
@@ -270,12 +319,20 @@ enum MenuBarItemMover {
         switch destination {
         case .leftOf(let targetID):
             guard let targetFrame = MenuBarBridging.frame(for: targetID) else { return false }
-            return itemFrame.maxX <= targetFrame.minX + 4 || itemFrame.midX < targetFrame.midX
+            return MenuBarMoveMatch.matchesLeftOf(item: itemFrame, target: targetFrame)
         case .rightOf(let targetID):
             guard let targetFrame = MenuBarBridging.frame(for: targetID) else { return false }
-            return itemFrame.minX + 4 >= targetFrame.maxX || itemFrame.midX > targetFrame.midX
+            return MenuBarMoveMatch.matchesRightOf(item: itemFrame, target: targetFrame)
         case .absolute(let x, _):
-            return Double(itemFrame.minX) >= x - 16 || Double(itemFrame.midX) >= x - 10
+            return MenuBarMoveMatch.matchesAbsoluteAtOrPast(item: itemFrame, x: x)
+        case .restoreOrigin(let origin):
+            return MenuBarMoveMatch.matchesOrigin(item: itemFrame, origin: origin)
+        case .hiddenLane(_, let expectedMinX, let expectedMaxX):
+            return MenuBarMoveMatch.matchesHiddenLane(
+                item: itemFrame,
+                expectedMinX: expectedMinX,
+                expectedMaxX: expectedMaxX
+            )
         }
     }
 
@@ -283,14 +340,14 @@ enum MenuBarItemMover {
 
     private static func targetWindowID(for destination: Destination) -> CGWindowID {
         switch destination {
-        case .leftOf(let id), .rightOf(let id): return id
-        case .absolute: return 0
+        case .leftOf(let id), .rightOf(let id), .hiddenLane(let id, _, _): return id
+        case .absolute, .restoreOrigin: return 0
         }
     }
 
     private static func endPoint(for destination: Destination) throws -> CGPoint {
         switch destination {
-        case .leftOf(let targetID):
+        case .leftOf(let targetID), .hiddenLane(let targetID, _, _):
             guard let frame = MenuBarBridging.frame(for: targetID) else {
                 throw MoveError.missingTarget
             }
@@ -302,6 +359,8 @@ enum MenuBarItemMover {
             return CGPoint(x: frame.maxX, y: frame.midY)
         case .absolute(let x, let y):
             return CGPoint(x: x, y: y)
+        case .restoreOrigin(let origin):
+            return CGPoint(x: origin.midX, y: origin.midY)
         }
     }
 

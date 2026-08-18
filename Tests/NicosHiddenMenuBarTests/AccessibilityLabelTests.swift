@@ -60,4 +60,13 @@ final class AccessibilityLabelTests: XCTestCase {
         )
         XCTAssertNil(title)
     }
+
+    func testIsWithinProximityMatchesBestTitleWindow() {
+        let near = CGRect(x: 102, y: 0, width: 22, height: 24)
+        let label = CGRect(x: 100, y: 0, width: 24, height: 24)
+        XCTAssertTrue(MenuBarAccessibilityCatalog.isWithinProximity(extra: near, label: label))
+        let far = CGRect(x: 800, y: 0, width: 24, height: 24)
+        XCTAssertFalse(MenuBarAccessibilityCatalog.isWithinProximity(extra: far, label: label))
+        XCTAssertFalse(MenuBarAccessibilityCatalog.isWithinProximity(extra: near, label: .null))
+    }
 }

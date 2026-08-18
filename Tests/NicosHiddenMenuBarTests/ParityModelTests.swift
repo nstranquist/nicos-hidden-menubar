@@ -28,12 +28,14 @@ final class ParityModelTests: XCTestCase {
         dict.removeValue(forKey: "revealMode")
         dict.removeValue(forKey: "enableExperimentalItemMovement")
         dict.removeValue(forKey: "revealOnHover")
+        dict.removeValue(forKey: "rescueOverflowIntoHiddenLane")
         data = try JSONSerialization.data(withJSONObject: dict)
 
         let decoded = try JSONDecoder().decode(HiddenBarConfig.self, from: data)
         XCTAssertFalse(decoded.isRevealPanelEnabled)
         XCTAssertFalse(decoded.isExperimentalItemMovementEnabled)
         XCTAssertFalse(decoded.isRevealOnHoverEnabled)
+        XCTAssertFalse(decoded.isRescueOverflowIntoHiddenLaneEnabled)
         XCTAssertEqual(decoded.configuredRevealMode, .automatic)
     }
 
