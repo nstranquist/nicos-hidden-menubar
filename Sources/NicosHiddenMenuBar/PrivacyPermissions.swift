@@ -35,11 +35,11 @@ enum PrivacyPermissions {
         }
         var code: SecStaticCode?
         guard SecStaticCodeCreateWithPath(url as CFURL, [], &code) == errSecSuccess,
-              let code
+            let code
         else { return nil }
         var info: CFDictionary?
         guard SecCodeCopySigningInformation(code, SecCSFlags(rawValue: kSecCSSigningInformation), &info) == errSecSuccess,
-              let info = info as? [String: Any]
+            let info = info as? [String: Any]
         else { return nil }
         // cdhashes is an array of Data; take the first sha256/sha1 blob as hex.
         if let hashes = info["cdhashes"] as? [Data], let first = hashes.first {

@@ -129,7 +129,7 @@ enum MenuBarItemMover {
             MouseCursorBridge.forceRestore(to: userCursor)
         }
 
-        for attempt in 1 ... max(1, options.maxAttempts) {
+        for attempt in 1...max(1, options.maxAttempts) {
             if Task.isCancelled { throw MoveError.cancelled }
             if ContinuousClock.now >= deadline { throw MoveError.timedOut }
 
@@ -162,7 +162,7 @@ enum MenuBarItemMover {
 
         // Best-effort rollback if we drifted without matching destination.
         if let current = MenuBarWindowInfo.read(windowID: windowID),
-           abs(current.frame.minX - originFrame.minX) > 2
+            abs(current.frame.minX - originFrame.minX) > 2
         {
             switch destination {
             case .absolute:
@@ -173,7 +173,8 @@ enum MenuBarItemMover {
                     restoreCursor: userCursor
                 )
             case .leftOf, .rightOf:
-                let rollback: Destination = current.frame.minX < originFrame.minX
+                let rollback: Destination =
+                    current.frame.minX < originFrame.minX
                     ? .rightOf(targetWindowID: targetWindowID(for: destination))
                     : .leftOf(targetWindowID: targetWindowID(for: destination))
                 try? await performSingleMove(
@@ -301,7 +302,7 @@ enum MenuBarItemMover {
         while ContinuousClock.now < deadline {
             if Task.isCancelled { return }
             if let frame = MenuBarBridging.frame(for: windowID),
-               abs(frame.minX - origin.minX) > 0.5 || abs(frame.midX - origin.midX) > 0.5
+                abs(frame.minX - origin.minX) > 0.5 || abs(frame.midX - origin.midX) > 0.5
             {
                 return
             }
@@ -396,12 +397,14 @@ private extension CGEvent {
         source: CGEventSource
     ) -> CGEvent? {
         let mouseType: CGEventType = (phase == .down) ? .leftMouseDown : .leftMouseUp
-        guard let event = CGEvent(
-            mouseEventSource: source,
-            mouseType: mouseType,
-            mouseCursorPosition: location,
-            mouseButton: .left
-        ) else {
+        guard
+            let event = CGEvent(
+                mouseEventSource: source,
+                mouseType: mouseType,
+                mouseCursorPosition: location,
+                mouseButton: .left
+            )
+        else {
             return nil
         }
 
@@ -444,7 +447,7 @@ enum MouseCursorBridge {
     /// `CGDisplayHideCursor` is refcounted — spam show() to drain the counter,
     /// re-associate hardware mouse, then warp back to the user's location.
     static func forceRestore(to point: CGPoint?) {
-        for _ in 0 ..< 16 {
+        for _ in 0..<16 {
             CGDisplayShowCursor(CGMainDisplayID())
         }
         CGAssociateMouseAndMouseCursorPosition(boolean_t(1))

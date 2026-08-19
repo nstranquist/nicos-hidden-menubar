@@ -27,13 +27,13 @@ final class HammerspoonBridgeTests: XCTestCase {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let bridgeURL = tempDir.appendingPathComponent("bridge.json")
         let payload = """
-        {
-          "schemaVersion": 1,
-          "generatedAt": "\(hiddenBarTimestampString(Date()))",
-          "source": "nicos-tools/hammerspoon",
-          "items": []
-        }
-        """
+            {
+              "schemaVersion": 1,
+              "generatedAt": "\(hiddenBarTimestampString(Date()))",
+              "source": "nicos-tools/hammerspoon",
+              "items": []
+            }
+            """
         try Data(payload.utf8).write(to: bridgeURL)
 
         let bridge = HammerspoonBridge(bridgeURL: bridgeURL)
@@ -54,15 +54,15 @@ final class HammerspoonBridgeTests: XCTestCase {
         try FileManager.default.createDirectory(at: tempDir, withIntermediateDirectories: true)
         let bridgeURL = tempDir.appendingPathComponent("bridge.json")
         let payload = """
-        {
-          "schemaVersion": 1,
-          "generatedAt": "\(hiddenBarTimestampString(Date()))",
-          "source": "nicos-tools/hammerspoon",
-          "items": [
-            { "title": "ALT", "kind": "menu", "module": "task_orbit", "preferredLane": "visible" }
-          ]
-        }
-        """
+            {
+              "schemaVersion": 1,
+              "generatedAt": "\(hiddenBarTimestampString(Date()))",
+              "source": "nicos-tools/hammerspoon",
+              "items": [
+                { "title": "ALT", "kind": "menu", "module": "task_orbit", "preferredLane": "visible" }
+              ]
+            }
+            """
         try Data(payload.utf8).write(to: bridgeURL)
 
         let bridge = HammerspoonBridge(bridgeURL: bridgeURL)

@@ -2,7 +2,7 @@ import CoreGraphics
 import Foundation
 
 #if canImport(AppKit)
-import AppKit
+    import AppKit
 #endif
 
 /// Pure geometry for the split menu-bar bands on notched MacBooks.
@@ -234,16 +234,19 @@ enum RevealPanelClassifier {
         // Cut-off extras first — otherwise "left of primary separator" steals them
         // into Hidden and the Overflow section stays empty.
         if notchSupportEnabled {
-            if let overflow, overflow.isOverflow(
-                itemMinX: itemMinX,
-                itemMaxX: itemMaxX,
-                itemMidX: itemMidX,
-                isOnScreen: isOnScreen
-            ) {
+            if let overflow,
+                overflow.isOverflow(
+                    itemMinX: itemMinX,
+                    itemMaxX: itemMaxX,
+                    itemMidX: itemMidX,
+                    isOnScreen: isOnScreen
+                )
+            {
                 return .overflow
             }
             if let notch,
-               notch.isUnderNotch(itemMinX: itemMinX, itemMaxX: itemMaxX, itemMidX: itemMidX) {
+                notch.isUnderNotch(itemMinX: itemMinX, itemMaxX: itemMaxX, itemMidX: itemMidX)
+            {
                 return .overflow
             }
         }
@@ -326,51 +329,51 @@ enum RevealPanelItemQuality {
 }
 
 #if canImport(AppKit)
-extension NotchBandGeometry {
-    @MainActor
-    static func forScreen(_ screen: NSScreen) -> NotchBandGeometry? {
-        let minX = Double(screen.frame.minX)
-        let maxX = Double(screen.frame.maxX)
-        if let fromAux = fromAuxiliaryAreas(
-            left: screen.auxiliaryTopLeftArea,
-            right: screen.auxiliaryTopRightArea,
-            screenMinX: minX,
-            screenMaxX: maxX
-        ) {
-            return fromAux
+    extension NotchBandGeometry {
+        @MainActor
+        static func forScreen(_ screen: NSScreen) -> NotchBandGeometry? {
+            let minX = Double(screen.frame.minX)
+            let maxX = Double(screen.frame.maxX)
+            if let fromAux = fromAuxiliaryAreas(
+                left: screen.auxiliaryTopLeftArea,
+                right: screen.auxiliaryTopRightArea,
+                screenMinX: minX,
+                screenMaxX: maxX
+            ) {
+                return fromAux
+            }
+            guard MenuBarItemScanner.screenHasNotch(screen) else { return nil }
+            return estimatedCentered(screenMinX: minX, screenMaxX: maxX)
         }
-        guard MenuBarItemScanner.screenHasNotch(screen) else { return nil }
-        return estimatedCentered(screenMinX: minX, screenMaxX: maxX)
     }
-}
 
-extension MenuBarOverflowLayout {
-    /// Live screen → overflow layout (always available; richer on notched displays).
-    @MainActor
-    static func forScreen(_ screen: NSScreen) -> MenuBarOverflowLayout {
-        let minX = Double(screen.frame.minX)
-        let maxX = Double(screen.frame.maxX)
-        let visibleMaxX = Double(screen.visibleFrame.maxX)
-        let left = screen.auxiliaryTopLeftArea
-        let right = screen.auxiliaryTopRightArea
-        if let left, let right, left.width > 1, right.width > 1 {
+    extension MenuBarOverflowLayout {
+        /// Live screen → overflow layout (always available; richer on notched displays).
+        @MainActor
+        static func forScreen(_ screen: NSScreen) -> MenuBarOverflowLayout {
+            let minX = Double(screen.frame.minX)
+            let maxX = Double(screen.frame.maxX)
+            let visibleMaxX = Double(screen.visibleFrame.maxX)
+            let left = screen.auxiliaryTopLeftArea
+            let right = screen.auxiliaryTopRightArea
+            if let left, let right, left.width > 1, right.width > 1 {
+                return MenuBarOverflowLayout(
+                    leftUsableMaxX: Double(left.maxX),
+                    rightUsableMinX: Double(right.minX),
+                    rightUsableMaxX: Double(right.maxX),
+                    visibleMaxX: visibleMaxX,
+                    screenMinX: minX,
+                    screenMaxX: maxX
+                )
+            }
             return MenuBarOverflowLayout(
-                leftUsableMaxX: Double(left.maxX),
-                rightUsableMinX: Double(right.minX),
-                rightUsableMaxX: Double(right.maxX),
+                leftUsableMaxX: nil,
+                rightUsableMinX: nil,
+                rightUsableMaxX: nil,
                 visibleMaxX: visibleMaxX,
                 screenMinX: minX,
                 screenMaxX: maxX
             )
         }
-        return MenuBarOverflowLayout(
-            leftUsableMaxX: nil,
-            rightUsableMinX: nil,
-            rightUsableMaxX: nil,
-            visibleMaxX: visibleMaxX,
-            screenMinX: minX,
-            screenMaxX: maxX
-        )
     }
-}
 #endif

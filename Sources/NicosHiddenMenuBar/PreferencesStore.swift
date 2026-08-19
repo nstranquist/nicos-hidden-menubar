@@ -265,8 +265,8 @@ final class PreferencesStore: ObservableObject {
 
     private func loadDiagnosticsFromDisk() -> HiddenBarDiagnostics {
         guard fileManager.fileExists(atPath: paths.diagnosticsURL.path),
-              let data = try? Data(contentsOf: paths.diagnosticsURL),
-              let loaded = try? JSONDecoder().decode(HiddenBarDiagnostics.self, from: data)
+            let data = try? Data(contentsOf: paths.diagnosticsURL),
+            let loaded = try? JSONDecoder().decode(HiddenBarDiagnostics.self, from: data)
         else {
             return HiddenBarDiagnostics.default
         }

@@ -23,8 +23,8 @@ struct HiddenBarImporter: Sendable {
 
     static let live = HiddenBarImporter(
         loadDefaults: { domain in
-        let raw = UserDefaults.standard.persistentDomain(forName: domain) ?? [:]
-        return convertFoundationDictionary(raw as NSDictionary)
+            let raw = UserDefaults.standard.persistentDomain(forName: domain) ?? [:]
+            return convertFoundationDictionary(raw as NSDictionary)
         },
         loadFallback: { domain in
             readDomainViaDefaultsExport(domain: domain)

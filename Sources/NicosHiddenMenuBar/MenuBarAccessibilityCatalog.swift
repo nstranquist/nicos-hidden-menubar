@@ -80,7 +80,7 @@ enum MenuBarAccessibilityCatalog {
             )
             guard let title, !title.isEmpty else { continue }
             guard let origin = copyPoint(child, attribute: kAXPositionAttribute as String),
-                  let size = copySize(child, attribute: kAXSizeAttribute as String)
+                let size = copySize(child, attribute: kAXSizeAttribute as String)
             else {
                 // Title without geometry still useful when only one unlabeled peer.
                 items.append(LabeledFrame(title: title, frame: .null, pid: pid))
@@ -97,7 +97,7 @@ enum MenuBarAccessibilityCatalog {
     private static func copyElement(_ element: AXUIElement, attribute: String) -> AXUIElement? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let value
+            let value
         else {
             return nil
         }
@@ -107,7 +107,7 @@ enum MenuBarAccessibilityCatalog {
     private static func copyArray(_ element: AXUIElement, attribute: String) -> [AXUIElement]? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let array = value as? [AXUIElement]
+            let array = value as? [AXUIElement]
         else {
             return nil
         }
@@ -117,7 +117,7 @@ enum MenuBarAccessibilityCatalog {
     private static func copyString(_ element: AXUIElement, attribute: String) -> String? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let string = value as? String
+            let string = value as? String
         else {
             return nil
         }
@@ -128,7 +128,7 @@ enum MenuBarAccessibilityCatalog {
     private static func copyPoint(_ element: AXUIElement, attribute: String) -> CGPoint? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let axValue = value
+            let axValue = value
         else {
             return nil
         }
@@ -140,7 +140,7 @@ enum MenuBarAccessibilityCatalog {
     private static func copySize(_ element: AXUIElement, attribute: String) -> CGSize? {
         var value: CFTypeRef?
         guard AXUIElementCopyAttributeValue(element, attribute as CFString, &value) == .success,
-              let axValue = value
+            let axValue = value
         else {
             return nil
         }

@@ -10,7 +10,10 @@ final class PlacementHideSessionTests: XCTestCase {
         var session = PlacementHideSession()
         let start = session.handle(.start(planned: planned))
         XCTAssertEqual(start.session.phase, .parking)
-        XCTAssertFalse(start.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            start.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
         session = start.session
         let gen = session.generation
 
@@ -37,7 +40,10 @@ final class PlacementHideSessionTests: XCTestCase {
         XCTAssertEqual(t.session.phase, .failed)
         XCTAssertTrue(t.effects.contains(.restore(ids: [10])))
         XCTAssertTrue(t.effects.contains(.reject(.hideUnavailable)))
-        XCTAssertFalse(t.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            t.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     func testPartialParkAllHiddenButIncompleteOwnershipFails() {
@@ -51,7 +57,10 @@ final class PlacementHideSessionTests: XCTestCase {
         XCTAssertEqual(t.session.phase, .failed)
         XCTAssertTrue(t.effects.contains(.restore(ids: [10])))
         XCTAssertTrue(t.effects.contains(.reject(.hideUnavailable)))
-        XCTAssertFalse(t.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            t.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     func testCancelWithEmptyParksIsNoopNoCommit() {
@@ -60,7 +69,10 @@ final class PlacementHideSessionTests: XCTestCase {
         let t = session.handle(.cancel)
         XCTAssertEqual(t.session.phase, .cancelled)
         XCTAssertEqual(t.effects, [.noop])
-        XCTAssertFalse(t.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            t.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     func testCancelAfterKParksRestoresThoseK() {
@@ -87,7 +99,10 @@ final class PlacementHideSessionTests: XCTestCase {
         let late = session.handle(.parkRecorded(windowID: 20, generation: gen))
         XCTAssertEqual(late.effects, [.restore(ids: [20])])
         XCTAssertEqual(late.session.phase, .cancelled)
-        XCTAssertFalse(late.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            late.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     /// Round-3 skeptic race: cancel takes ownership, then late verify tries to commit.
@@ -106,7 +121,10 @@ final class PlacementHideSessionTests: XCTestCase {
         let late = session.handle(.verify(allHidden: true, generation: gen))
         XCTAssertEqual(late.effects, [.noop])
         XCTAssertEqual(late.session.phase, .cancelled)
-        XCTAssertFalse(late.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            late.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
         // Must not promote empty parks into a collapsed claim.
         XCTAssertFalse(late.effects.contains(.commitCollapse(parked: [])))
     }
@@ -118,7 +136,10 @@ final class PlacementHideSessionTests: XCTestCase {
         session = session.handle(.cancel).session
         let t = session.handle(.fail(reason: "item_move_failed", generation: gen))
         XCTAssertEqual(t.effects, [.noop])
-        XCTAssertFalse(t.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            t.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     func testCancelFromIdleIsNoopDoesNotEnterCancelled() {
@@ -149,7 +170,10 @@ final class PlacementHideSessionTests: XCTestCase {
 
         let staleVerify = session.handle(.verify(allHidden: true, generation: oldGen))
         XCTAssertEqual(staleVerify.effects, [.noop])
-        XCTAssertFalse(staleVerify.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            staleVerify.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
 
         // New gen can still succeed.
         session = session.handle(.parkRecorded(windowID: 100, generation: newGen)).session
@@ -173,7 +197,10 @@ final class PlacementHideSessionTests: XCTestCase {
         XCTAssertEqual(t.session.phase, .failed)
         XCTAssertTrue(t.effects.contains(.restore(ids: [10])))
         XCTAssertTrue(t.effects.contains(.reject(.hideUnavailable)))
-        XCTAssertFalse(t.effects.contains { if case .commitCollapse = $0 { return true }; return false })
+        XCTAssertFalse(
+            t.effects.contains {
+                if case .commitCollapse = $0 { return true }; return false
+            })
     }
 
     func testCommitRequiresExactPlannedSetNotJustCount() {

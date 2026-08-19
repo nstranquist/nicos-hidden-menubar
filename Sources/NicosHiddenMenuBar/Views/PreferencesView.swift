@@ -163,14 +163,16 @@ struct PreferencesView: View {
     @ViewBuilder
     private var panelTab: some View {
         Section {
-            Toggle("Overflow detection", isOn: Binding(
-                get: { preferencesStore.config.isNotchSupportEnabled },
-                set: { newValue in
-                    _ = preferencesStore.updateConfig { current in
-                        current.notchSupportEnabled = newValue
+            Toggle(
+                "Overflow detection",
+                isOn: Binding(
+                    get: { preferencesStore.config.isNotchSupportEnabled },
+                    set: { newValue in
+                        _ = preferencesStore.updateConfig { current in
+                            current.notchSupportEnabled = newValue
+                        }
                     }
-                }
-            ))
+                ))
             Text(
                 "Lists status extras that are cut off by this display’s menu-bar width "
                     + "(or sit under the camera gap) in the panel’s Overflow section. "
@@ -179,14 +181,16 @@ struct PreferencesView: View {
             .font(.caption)
             .foregroundStyle(.secondary)
             .fixedSize(horizontal: false, vertical: true)
-            Toggle("Rescue overflow into hidden lane", isOn: Binding(
-                get: { preferencesStore.config.isRescueOverflowIntoHiddenLaneEnabled },
-                set: { newValue in
-                    _ = preferencesStore.updateConfig { current in
-                        current.rescueOverflowIntoHiddenLane = newValue
+            Toggle(
+                "Rescue overflow into hidden lane",
+                isOn: Binding(
+                    get: { preferencesStore.config.isRescueOverflowIntoHiddenLaneEnabled },
+                    set: { newValue in
+                        _ = preferencesStore.updateConfig { current in
+                            current.rescueOverflowIntoHiddenLane = newValue
+                        }
                     }
-                }
-            ))
+                ))
             Text(
                 "Off by default. When on, extras sitting under the camera gap are moved "
                     + "just left of the hide separator (hidden lane), then verified. "
@@ -198,8 +202,10 @@ struct PreferencesView: View {
         } header: {
             Text("Overflow")
         } footer: {
-            Text("Clicking an Overflow tile moves it into the visible menu bar, then opens it. Command-drag it back to the panel to hide it again. If it still can’t open (system-owned), use the bar icons.")
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "Clicking an Overflow tile moves it into the visible menu bar, then opens it. Command-drag it back to the panel to hide it again. If it still can’t open (system-owned), use the bar icons."
+            )
+            .fixedSize(horizontal: false, vertical: true)
         }
 
         Section {
@@ -250,20 +256,22 @@ struct PreferencesView: View {
                     .foregroundStyle(.secondary)
             } else {
                 ForEach(menuBarAppRows, id: \.namespace) { row in
-                    Toggle(isOn: Binding(
-                        get: {
-                            preferencesStore.config.resolvedPanelAlwaysShowNamespaces.contains {
-                                row.namespace.localizedCaseInsensitiveContains($0) || $0 == row.namespace
+                    Toggle(
+                        isOn: Binding(
+                            get: {
+                                preferencesStore.config.resolvedPanelAlwaysShowNamespaces.contains {
+                                    row.namespace.localizedCaseInsensitiveContains($0) || $0 == row.namespace
+                                }
+                            },
+                            set: { on in
+                                if on {
+                                    addPanelAlwaysShow(row.namespace)
+                                } else {
+                                    removePanelAlwaysShow(row.namespace)
+                                }
                             }
-                        },
-                        set: { on in
-                            if on {
-                                addPanelAlwaysShow(row.namespace)
-                            } else {
-                                removePanelAlwaysShow(row.namespace)
-                            }
-                        }
-                    )) {
+                        )
+                    ) {
                         VStack(alignment: .leading, spacing: 2) {
                             Text(row.name)
                             Text(row.namespace)
@@ -340,14 +348,17 @@ struct PreferencesView: View {
         }
 
         Section {
-            Picker("Reveal mode", selection: Binding(
-                get: { preferencesStore.config.configuredRevealMode },
-                set: { newValue in
-                    _ = preferencesStore.updateConfig { current in
-                        current.revealMode = newValue
+            Picker(
+                "Reveal mode",
+                selection: Binding(
+                    get: { preferencesStore.config.configuredRevealMode },
+                    set: { newValue in
+                        _ = preferencesStore.updateConfig { current in
+                            current.revealMode = newValue
+                        }
                     }
-                }
-            )) {
+                )
+            ) {
                 ForEach(HiddenItemRevealMode.allCases, id: \.self) { mode in
                     Text(mode.displayName).tag(mode)
                 }
@@ -362,15 +373,18 @@ struct PreferencesView: View {
         }
 
         Section {
-            Picker("Chevron color", selection: Binding(
-                get: { preferencesStore.config.resolvedChevronColor },
-                set: { newValue in
-                    _ = preferencesStore.updateConfig { current in
-                        current.chevronColor = newValue
+            Picker(
+                "Chevron color",
+                selection: Binding(
+                    get: { preferencesStore.config.resolvedChevronColor },
+                    set: { newValue in
+                        _ = preferencesStore.updateConfig { current in
+                            current.chevronColor = newValue
+                        }
+                        // Live-apply via config publisher → applyCurrentConfiguration.
                     }
-                    // Live-apply via config publisher → applyCurrentConfiguration.
-                }
-            )) {
+                )
+            ) {
                 ForEach(ChevronIconColor.allCases, id: \.self) { color in
                     Text(color.displayName).tag(color)
                 }
@@ -413,14 +427,15 @@ struct PreferencesView: View {
 
     private var revealModeHelp: some View {
         let mode = preferencesStore.config.configuredRevealMode
-        let text: String = switch mode {
-        case .automatic:
-            "Reveal inline on regular displays and in the searchable panel on notched displays. Collapse is verified in either mode."
-        case .inline:
-            "Reveal hidden items back in the menu bar. A notch may still limit how many revealed items fit."
-        case .belowMenuBar:
-            "Always open the searchable panel under the menu bar. Best ergonomics on MacBooks with a notch."
-        }
+        let text: String =
+            switch mode {
+            case .automatic:
+                "Reveal inline on regular displays and in the searchable panel on notched displays. Collapse is verified in either mode."
+            case .inline:
+                "Reveal hidden items back in the menu bar. A notch may still limit how many revealed items fit."
+            case .belowMenuBar:
+                "Always open the searchable panel under the menu bar. Best ergonomics on MacBooks with a notch."
+            }
         return Text(text)
             .font(.caption)
             .foregroundStyle(.secondary)
@@ -505,18 +520,23 @@ struct PreferencesView: View {
         }
 
         Section {
-            Picker("Active profile", selection: Binding(
-                get: { profileStore.activeProfileName },
-                set: { newValue in _ = profileStore.switchProfile(named: newValue) }
-            )) {
+            Picker(
+                "Active profile",
+                selection: Binding(
+                    get: { profileStore.activeProfileName },
+                    set: { newValue in _ = profileStore.switchProfile(named: newValue) }
+                )
+            ) {
                 ForEach(profileStore.availableProfiles, id: \.self) { name in
                     Text(name.capitalized).tag(name)
                 }
             }
             let profile = profileStore.activeProfile
-            Text("Auto-collapse: \(profile.autoCollapseEnabled ? "\(profile.autoCollapseSeconds)s" : "manual") · Dock on expand: \(profile.useRegularActivationOnExpand ? "yes" : "no")")
-                .font(.caption)
-                .foregroundStyle(.secondary)
+            Text(
+                "Auto-collapse: \(profile.autoCollapseEnabled ? "\(profile.autoCollapseSeconds)s" : "manual") · Dock on expand: \(profile.useRegularActivationOnExpand ? "yes" : "no")"
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
             Button("Edit Profiles…") {
                 NotificationCenter.default.post(name: .nicosHiddenBarOpenProfileEditor, object: nil)
             }
@@ -535,10 +555,12 @@ struct PreferencesView: View {
                 okTitle: "Accessibility granted (this binary)",
                 badTitle: "Accessibility not trusted for this binary"
             )
-            Text("Required to open items from the reveal panel and for placement hide/move. Live check uses AXIsProcessTrusted — Settings can show ON for a stale install while this build is still denied.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "Required to open items from the reveal panel and for placement hide/move. Live check uses AXIsProcessTrusted — Settings can show ON for a stale install while this build is still denied."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
             if !accessibilityTrusted {
                 Text(PrivacyPermissions.untrustedSettingsDetail)
                     .font(.caption)
@@ -615,10 +637,12 @@ struct PreferencesView: View {
     private var advancedTab: some View {
         Section {
             Toggle("Truly move/hide items (Cmd-drag)", isOn: optionalBinding(\.enableExperimentalItemMovement))
-            Text("When enabled, panel activation can relocate an item into the visible lane if in-place open fails. Requires Accessibility. Off by default and fail-closed.")
-                .font(.caption)
-                .foregroundStyle(.secondary)
-                .fixedSize(horizontal: false, vertical: true)
+            Text(
+                "When enabled, panel activation can relocate an item into the visible lane if in-place open fails. Requires Accessibility. Off by default and fail-closed."
+            )
+            .font(.caption)
+            .foregroundStyle(.secondary)
+            .fixedSize(horizontal: false, vertical: true)
         } header: {
             Text("Experimental movement")
         }

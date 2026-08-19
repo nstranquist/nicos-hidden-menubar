@@ -174,7 +174,8 @@ struct MenuBarServiceCompositionReport: Equatable, Sendable {
     }
 
     var detail: String {
-        let owners = ownerTypes
+        let owners =
+            ownerTypes
             .sorted { $0.key < $1.key }
             .map { "\($0.key)=\($0.value)" }
             .joined(separator: " ")

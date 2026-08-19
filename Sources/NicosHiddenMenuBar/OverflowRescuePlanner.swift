@@ -133,11 +133,13 @@ enum OverflowRescuePlanner {
         ) {
             return false
         }
-        if let notch, notch.isUnderNotch(
-            itemMinX: postMove.minX,
-            itemMaxX: postMove.maxX,
-            itemMidX: postMove.midX
-        ) {
+        if let notch,
+            notch.isUnderNotch(
+                itemMinX: postMove.minX,
+                itemMaxX: postMove.maxX,
+                itemMidX: postMove.midX
+            )
+        {
             return false
         }
         if let destination {
@@ -267,11 +269,13 @@ enum OverflowRescuePlanner {
             return .refuse(.notOverflow)
         }
 
-        guard var destination = hiddenLaneDestination(
-            itemWidth: item.frame.width,
-            hideSeparatorX: hideSeparatorX,
-            overflow: overflow
-        ) else {
+        guard
+            var destination = hiddenLaneDestination(
+                itemWidth: item.frame.width,
+                hideSeparatorX: hideSeparatorX,
+                overflow: overflow
+            )
+        else {
             return .refuse(.destinationUnusable)
         }
         destination.hideSeparatorWindowID = snapshot.hideSeparatorWindowID

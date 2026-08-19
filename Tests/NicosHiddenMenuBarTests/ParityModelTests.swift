@@ -295,7 +295,7 @@ final class ParityModelTests: XCTestCase {
 
     func testMenuBarBandDetection() {
         let screen = CGRect(x: 0, y: 0, width: 1500, height: 1000)
-        let visible = CGRect(x: 0, y: 0, width: 1500, height: 978) // menu bar ~22pt
+        let visible = CGRect(x: 0, y: 0, width: 1500, height: 978)  // menu bar ~22pt
         XCTAssertTrue(
             MenuBarBridging.isInMenuBarBand(
                 CGPoint(x: 100, y: 990),
@@ -413,8 +413,8 @@ final class ParityModelTests: XCTestCase {
         let keys = items.map(\.item.identity.key)
         let result = RevealPanelReorder.move(
             items: items,
-            draggedKey: keys[2], // C
-            beforeKey: keys[0] // before A
+            draggedKey: keys[2],  // C
+            beforeKey: keys[0]  // before A
         )
         XCTAssertEqual(result?.items.map(\.item.displayName), ["C", "A", "B"])
         XCTAssertEqual(result?.draggedWindowID, 3)
@@ -423,7 +423,7 @@ final class ParityModelTests: XCTestCase {
 
     func testRevealPanelPresentationDropsUnparkedControlCenterNoise() {
         let ccNS = ControlCenterModules.controlCenterNamespace
-        let items: [MenuBarDiscoveredItem] = (0 ..< 5).map { i in
+        let items: [MenuBarDiscoveredItem] = (0..<5).map { i in
             let id = MenuBarItemIdentity(
                 namespace: ccNS,
                 title: "",

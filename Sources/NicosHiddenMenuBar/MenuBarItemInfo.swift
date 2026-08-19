@@ -34,7 +34,7 @@ extension MenuBarItemInfo {
     ]
 
     static let nonHideableNamespaces: Set<String> = [
-        "com.apple.controlcenter.clock",
+        "com.apple.controlcenter.clock"
     ]
 
     var isLikelyImmovable: Bool {
@@ -125,7 +125,8 @@ struct MenuBarWindowInfo: Sendable {
 
         var frame = CGRect.zero
         if let boundsDictionary = dictionary[kCGWindowBounds as String] as? NSDictionary,
-           let decoded = CGRect(dictionaryRepresentation: boundsDictionary as CFDictionary) {
+            let decoded = CGRect(dictionaryRepresentation: boundsDictionary as CFDictionary)
+        {
             frame = decoded
         } else if let bridgedFrame {
             frame = bridgedFrame
@@ -158,10 +159,11 @@ struct MenuBarWindowInfo: Sendable {
     }
 
     private static func copyWindowDictionary(for windowID: CGWindowID) -> [String: Any]? {
-        let infoList = CGWindowListCopyWindowInfo(
-            [.optionIncludingWindow],
-            windowID
-        ) as? [[String: Any]]
+        let infoList =
+            CGWindowListCopyWindowInfo(
+                [.optionIncludingWindow],
+                windowID
+            ) as? [[String: Any]]
         return infoList?.first
     }
 }

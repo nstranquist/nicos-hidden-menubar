@@ -27,12 +27,13 @@ final class ConfigRoundTripTests: XCTestCase {
         XCTAssertFalse(store.config.globalShortcut.enabled)
         XCTAssertEqual(store.config.globalShortcut, .deliberate(enabled: false))
 
-        XCTAssertTrue(store.updateConfig { current in
-            current.activeProfile = "focus"
-            current.autoCollapse.seconds = 12
-            current.firstPartyVisible.preferredVisibleTitles = ["TO", "PW"]
-            current.onboardingCompleted = true
-        })
+        XCTAssertTrue(
+            store.updateConfig { current in
+                current.activeProfile = "focus"
+                current.autoCollapse.seconds = 12
+                current.firstPartyVisible.preferredVisibleTitles = ["TO", "PW"]
+                current.onboardingCompleted = true
+            })
 
         let reloadedStore = PreferencesStore(
             paths: paths,
@@ -97,18 +98,19 @@ final class ConfigRoundTripTests: XCTestCase {
             importer: HiddenBarImporter(loadDefaults: { _ in [:] })
         )
 
-        XCTAssertTrue(store.updateConfig { current in
-            current.lanes.alwaysHiddenEnabled = true
-            current.lanes.primarySeparatorVisibleWhenExpanded = false
-            current.revealMode = .belowMenuBar
-            current.autoCollapse.enabled = true
-            current.autoCollapse.seconds = 7
-            current.globalShortcut.enabled = true
-            current.globalShortcut.display = "cmd+shift+h"
-            current.activeProfile = "focus"
-            current.enableExperimentalItemMovement = false
-            current.onboardingCompleted = true
-        })
+        XCTAssertTrue(
+            store.updateConfig { current in
+                current.lanes.alwaysHiddenEnabled = true
+                current.lanes.primarySeparatorVisibleWhenExpanded = false
+                current.revealMode = .belowMenuBar
+                current.autoCollapse.enabled = true
+                current.autoCollapse.seconds = 7
+                current.globalShortcut.enabled = true
+                current.globalShortcut.display = "cmd+shift+h"
+                current.activeProfile = "focus"
+                current.enableExperimentalItemMovement = false
+                current.onboardingCompleted = true
+            })
 
         let reloaded = PreferencesStore(
             paths: paths,
@@ -158,10 +160,11 @@ final class ConfigRoundTripTests: XCTestCase {
             importer: HiddenBarImporter(loadDefaults: { _ in [:] })
         )
         XCTAssertFalse(store.config.isRescueOverflowIntoHiddenLaneEnabled)
-        XCTAssertTrue(store.updateConfig { current in
-            current.rescueOverflowIntoHiddenLane = true
-            current.enableExperimentalItemMovement = true
-        })
+        XCTAssertTrue(
+            store.updateConfig { current in
+                current.rescueOverflowIntoHiddenLane = true
+                current.enableExperimentalItemMovement = true
+            })
         let reloaded = PreferencesStore(
             paths: paths,
             fileManager: .default,

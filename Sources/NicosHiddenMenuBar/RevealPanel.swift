@@ -110,16 +110,19 @@ final class RevealPanel {
         // Open shell immediately with last/empty content, then stream items.
         positionPanel(panel, near: anchorMinX, on: screen)
 
-        let bounds = laneBounds ?? MenuBarLaneBounds(
-            toggleX: anchorMinX,
-            primaryX: nil,
-            secondaryX: nil,
-            alwaysHiddenEnabled: false,
-            screenMinX: Double(screen.frame.minX),
-            screenMaxX: Double(screen.frame.maxX)
-        )
+        let bounds =
+            laneBounds
+            ?? MenuBarLaneBounds(
+                toggleX: anchorMinX,
+                primaryX: nil,
+                secondaryX: nil,
+                alwaysHiddenEnabled: false,
+                screenMinX: Double(screen.frame.minX),
+                screenMaxX: Double(screen.frame.maxX)
+            )
         let resolvedNotch = notch ?? (notchSupportEnabled ? NotchBandGeometry.forScreen(screen) : nil)
-        let resolvedOverflow = overflow
+        let resolvedOverflow =
+            overflow
             ?? (notchSupportEnabled ? MenuBarOverflowLayout.forScreen(screen) : nil)
 
         installExternalDragMonitorIfNeeded()
@@ -225,12 +228,12 @@ final class RevealPanel {
     private func installEscapeMonitorIfNeeded() {
         guard escapeLocalMonitor == nil else { return }
         let isEscape: (NSEvent) -> Bool = { event in
-            event.type == .keyDown && event.keyCode == 53 // kVK_Escape
+            event.type == .keyDown && event.keyCode == 53  // kVK_Escape
         }
         escapeLocalMonitor = NSEvent.addLocalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard isEscape(event) else { return event }
             self?.hide()
-            return nil // swallow
+            return nil  // swallow
         }
         escapeGlobalMonitor = NSEvent.addGlobalMonitorForEvents(matching: .keyDown) { [weak self] event in
             guard isEscape(event) else { return }
@@ -271,12 +274,12 @@ final class RevealPanel {
                 return
             }
             guard let screen = NSScreen.screens.first(where: { $0.frame.contains(loc) }),
-                  MenuBarBridging.isInMenuBarBand(
+                MenuBarBridging.isInMenuBarBand(
                     loc,
                     screen: screen.frame,
                     visible: screen.visibleFrame
-                  ),
-                  let windowID = MenuBarBridging.windowIDAtScreenPoint(loc)
+                ),
+                let windowID = MenuBarBridging.windowIDAtScreenPoint(loc)
             else {
                 trackedExternalWindowID = nil
                 return
@@ -295,8 +298,8 @@ final class RevealPanel {
                 trackedExternalWindowID = nil
             }
             guard let windowID = trackedExternalWindowID,
-                  let panelFrame = panelScreenFrame,
-                  panelFrame.contains(loc)
+                let panelFrame = panelScreenFrame,
+                panelFrame.contains(loc)
             else {
                 presentStatusIfVisible(nil)
                 return
@@ -548,11 +551,11 @@ enum RevealPanelDropPreview: Equatable, Sendable {
         tileWidth: CGFloat
     ) -> String? {
         guard tileWidth > 0,
-              let targetIdx = orderedKeys.firstIndex(of: targetKey)
+            let targetIdx = orderedKeys.firstIndex(of: targetKey)
         else { return targetKey }
         let dropAfter = dropXInTile > tileWidth * 0.5
         if !dropAfter {
-            return targetKey // insert before target
+            return targetKey  // insert before target
         }
         // Insert after target → before the next key, or nil for end.
         let next = targetIdx + 1
@@ -562,7 +565,7 @@ enum RevealPanelDropPreview: Equatable, Sendable {
                 ? (next + 1 < orderedKeys.count ? orderedKeys[next + 1] : nil)
                 : nextKey
         }
-        return nil // end of list
+        return nil  // end of list
     }
 }
 
@@ -629,7 +632,8 @@ enum RevealPanelPresentation {
 
         for item in ordered {
             let ns = item.identity.namespace.lowercased()
-            let isControlCenter = ns.contains("controlcenter")
+            let isControlCenter =
+                ns.contains("controlcenter")
                 || ns == ControlCenterModules.controlCenterNamespace
             let isSiri = ns.contains("siri")
             let parked = parkedWindowIDs.contains(item.handle.windowID)
@@ -737,11 +741,13 @@ final class RevealPanelModel: ObservableObject {
     /// and the window id it should sit left of (nil = end), for live menu-bar move.
     @discardableResult
     func reorder(draggedKey: String, beforeKey: String?) -> (dragged: CGWindowID, before: CGWindowID?)? {
-        guard let result = RevealPanelReorder.move(
-            items: items,
-            draggedKey: draggedKey,
-            beforeKey: beforeKey
-        ) else { return nil }
+        guard
+            let result = RevealPanelReorder.move(
+                items: items,
+                draggedKey: draggedKey,
+                beforeKey: beforeKey
+            )
+        else { return nil }
         // Keep section tags aligned with the reordered item list.
         let sectionByKey = Dictionary(uniqueKeysWithValues: zip(items.map(\.item.identity.key), sections))
         items = result.items
@@ -832,7 +838,8 @@ final class RevealPanelModel: ObservableObject {
         if refinedClassified.isEmpty && !laneBounds.geometryUsable {
             statusMessage = "Markers need repair — right-click the chevron → Repair Marker Positions."
         } else if refinedClassified.isEmpty {
-            statusMessage = notchSupportEnabled
+            statusMessage =
+                notchSupportEnabled
                 ? "No hidden or overflow items."
                 : "No hidden items in the hidden lane."
         } else {
@@ -847,7 +854,8 @@ final class RevealPanelModel: ObservableObject {
         }
 
         // Stable ordinals for anonymous overflow extras (pid 0 / no owner).
-        let overflowKeys = refinedClassified
+        let overflowKeys =
+            refinedClassified
             .filter { $0.section == .overflow }
             .sorted { $0.item.frame.midX < $1.item.frame.midX }
             .map(\.item.identity.key)
@@ -865,7 +873,8 @@ final class RevealPanelModel: ObservableObject {
                     return entry
                 }
                 let name = entry.item.displayName
-                let anonymous = entry.item.ownerPID == 0
+                let anonymous =
+                    entry.item.ownerPID == 0
                     || name == "Menu extra"
                     || name == "Unknown"
                     || name.isEmpty
@@ -1012,12 +1021,13 @@ final class RevealPanelModel: ObservableObject {
                 }
             }
             if notchSupportEnabled,
-               let layout = resolvedOverflow,
-               layout.isOverflow(
-                   itemMinX: Double(item.frame.minX),
-                   itemMaxX: Double(item.frame.maxX),
-                   itemMidX: Double(item.frame.midX)
-               ) {
+                let layout = resolvedOverflow,
+                layout.isOverflow(
+                    itemMinX: Double(item.frame.minX),
+                    itemMaxX: Double(item.frame.maxX),
+                    itemMidX: Double(item.frame.midX)
+                )
+            {
                 return ClassifiedItem(item: item, section: .overflow)
             }
             return ClassifiedItem(item: item, section: .hidden)
@@ -1224,7 +1234,8 @@ private struct RevealPanelView: View {
             return insertIndex >= keys.filter { $0 != draggingKey }.count
         }()
         let groups = model.groupedSections
-        let showHeaders = groups.count > 1
+        let showHeaders =
+            groups.count > 1
             || groups.contains(where: { $0.section == .overflow })
 
         return VStack(alignment: .leading, spacing: 8) {
@@ -1447,22 +1458,26 @@ private struct RevealPanelView: View {
             provider.loadItem(forTypeIdentifier: typeID, options: nil) { item, _ in
                 let draggedKey = revealPanelParseDragKey(item)
                 guard let draggedKey,
-                      draggedKey != RevealPanelDrag.cancelSentinel,
-                      !draggedKey.isEmpty
+                    draggedKey != RevealPanelDrag.cancelSentinel,
+                    !draggedKey.isEmpty
                 else { return }
                 DispatchQueue.main.async {
                     if unhideZone {
-                        guard let windowID = model.items.first(where: {
-                            $0.item.identity.key == draggedKey
-                        })?.item.handle.windowID else {
+                        guard
+                            let windowID = model.items.first(where: {
+                                $0.item.identity.key == draggedKey
+                            })?.item.handle.windowID
+                        else {
                             draggingKey = nil
                             dropTargetKey = nil
                             return
                         }
                         onUnhide(windowID) { succeeded in
-                            guard CrossBarDropPolicy.shouldRemovePanelItemAfterUnhide(
-                                moveSucceeded: succeeded
-                            ) else {
+                            guard
+                                CrossBarDropPolicy.shouldRemovePanelItemAfterUnhide(
+                                    moveSucceeded: succeeded
+                                )
+                            else {
                                 draggingKey = nil
                                 dropTargetKey = nil
                                 unhideZoneTargeted = false
@@ -1522,8 +1537,9 @@ private struct RevealPanelView: View {
         } else if let symbol = ControlCenterModules.symbolName(
             forModuleID: item.item.identity.moduleID,
             title: item.item.title
-        ), item.item.identity.namespace.lowercased().contains("controlcenter")
-            || item.item.ownerName.lowercased().contains("control center")
+        ),
+            item.item.identity.namespace.lowercased().contains("controlcenter")
+                || item.item.ownerName.lowercased().contains("control center")
         {
             Image(systemName: symbol)
                 .font(.system(size: 14, weight: .semibold))
@@ -1613,8 +1629,8 @@ private struct RevealPanelTileDropDelegate: DropDelegate {
         for typeID in typeIDs where provider.hasItemConformingToTypeIdentifier(typeID) {
             provider.loadItem(forTypeIdentifier: typeID, options: nil) { item, _ in
                 guard let draggedKey = revealPanelParseDragKey(item),
-                      draggedKey != CrossBarDropPolicy.cancelSentinel,
-                      !draggedKey.isEmpty
+                    draggedKey != CrossBarDropPolicy.cancelSentinel,
+                    !draggedKey.isEmpty
                 else { return }
                 let beforeKey: String? = {
                     if useAfter {

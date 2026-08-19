@@ -17,10 +17,11 @@ final class IconCacheTests: XCTestCase {
         XCTAssertEqual(hit?.1, 2)
 
         // Frame change misses.
-        XCTAssertNil(cache.lookup(
-            identityKey: key,
-            frameSignature: MenuBarFrameSignature.make(CGRect(x: 9, y: 9, width: 3, height: 4), scale: 2)
-        ))
+        XCTAssertNil(
+            cache.lookup(
+                identityKey: key,
+                frameSignature: MenuBarFrameSignature.make(CGRect(x: 9, y: 9, width: 3, height: 4), scale: 2)
+            ))
 
         cache.invalidate(identityKey: key)
         XCTAssertNil(cache.lookup(identityKey: key, frameSignature: signature))

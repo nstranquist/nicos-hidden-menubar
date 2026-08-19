@@ -65,7 +65,8 @@ final class HammerspoonBridge: ObservableObject {
                 preferredVisibleTitles: visibleItems.map(\.title),
                 preferredVisibleSources: visibleItems.isEmpty ? [] : ["hammerspoon"]
             )
-            let disagrees = suggestion.preferredVisibleTitles != config.firstPartyVisible.preferredVisibleTitles
+            let disagrees =
+                suggestion.preferredVisibleTitles != config.firstPartyVisible.preferredVisibleTitles
                 || suggestion.preferredVisibleSources != config.firstPartyVisible.preferredVisibleSources
             return .valid(
                 path: bridgeURL,

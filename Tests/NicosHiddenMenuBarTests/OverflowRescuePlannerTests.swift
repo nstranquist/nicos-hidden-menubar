@@ -407,12 +407,30 @@ final class OverflowRescuePlannerTests: XCTestCase {
             Row(name: "flag off", mutate: { $0.rescueEnabled = false }, items: [gap], expectCandidateKeys: [], expectReason: .optInOff),
             Row(name: "753 under-gap", mutate: { _ in }, items: [gap], expectCandidateKeys: [gap.identityKey], expectReason: nil),
             Row(name: "hidden-lane", mutate: { _ in }, items: [hiddenLaneItem()], expectCandidateKeys: [], expectReason: .alreadyInRightStrip),
-            Row(name: "visible", mutate: { _ in }, items: [item(key: "vis", windowID: 20, namespace: "com.example.v", ownerName: "V", title: "", x: 1_212, width: 24)], expectCandidateKeys: [], expectReason: .alreadyInRightStrip),
-            Row(name: "chrome", mutate: { _ in }, items: [item(key: "chrome", windowID: 21, namespace: "com.nstranquist.nicos-hidden-menubar", ownerName: "Nicos Hidden Bar", title: "Hidden", x: 753, width: 24)], expectCandidateKeys: [], expectReason: .hiddenBarChrome),
-            Row(name: "immovable", mutate: { _ in }, items: [item(key: "imm", windowID: 22, namespace: "com.apple.controlcenter", ownerName: "Control Center", title: "Focus", x: 753, width: 24)], expectCandidateKeys: [], expectReason: .immovable),
+            Row(
+                name: "visible", mutate: { _ in },
+                items: [item(key: "vis", windowID: 20, namespace: "com.example.v", ownerName: "V", title: "", x: 1_212, width: 24)], expectCandidateKeys: [],
+                expectReason: .alreadyInRightStrip),
+            Row(
+                name: "chrome", mutate: { _ in },
+                items: [
+                    item(
+                        key: "chrome", windowID: 21, namespace: "com.nstranquist.nicos-hidden-menubar", ownerName: "Nicos Hidden Bar", title: "Hidden", x: 753,
+                        width: 24)
+                ], expectCandidateKeys: [], expectReason: .hiddenBarChrome),
+            Row(
+                name: "immovable", mutate: { _ in },
+                items: [item(key: "imm", windowID: 22, namespace: "com.apple.controlcenter", ownerName: "Control Center", title: "Focus", x: 753, width: 24)],
+                expectCandidateKeys: [], expectReason: .immovable),
             Row(name: "cooldown", mutate: { $0.recentUserMoveIDs = [gap.identityKey] }, items: [gap], expectCandidateKeys: [], expectReason: .recentUserMove),
-            Row(name: "already-rescued", mutate: { $0.alreadyRescuedIDs = [gap.identityKey] }, items: [gap], expectCandidateKeys: [], expectReason: .alreadyRescued),
-            Row(name: "bad geometry", mutate: { $0.hideSeparatorX = nil; $0.overflow = nil }, items: [gap], expectCandidateKeys: [], expectReason: .geometryUnreadable),
+            Row(
+                name: "already-rescued", mutate: { $0.alreadyRescuedIDs = [gap.identityKey] }, items: [gap], expectCandidateKeys: [],
+                expectReason: .alreadyRescued),
+            Row(
+                name: "bad geometry",
+                mutate: {
+                    $0.hideSeparatorX = nil; $0.overflow = nil
+                }, items: [gap], expectCandidateKeys: [], expectReason: .geometryUnreadable),
         ]
 
         for row in rows {

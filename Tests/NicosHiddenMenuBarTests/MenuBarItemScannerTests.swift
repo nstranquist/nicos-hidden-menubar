@@ -26,7 +26,7 @@ final class MenuBarItemScannerTests: XCTestCase {
             visibleMaxX: 1440,
             hasNotch: false
         )
-        XCTAssertEqual(scan.hideableItemCount, 1) // only the item at 100 fully clears 700
+        XCTAssertEqual(scan.hideableItemCount, 1)  // only the item at 100 fully clears 700
     }
 
     func testAnyItemHiddenPastEdgeWhenHideableItemPushedBeyondVisibleMaxX() {

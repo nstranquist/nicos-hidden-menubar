@@ -71,10 +71,12 @@ enum MenuBarItemScanner {
         let screenFrame = screen.frame
         let visibleMaxX = Double(screen.visibleFrame.maxX)
         // Prefer full menu-bar list when we need parked (off-edge) items.
-        let ids = includeParkedPastEdge
+        let ids =
+            includeParkedPastEdge
             ? MenuBarBridging.allMenuBarWindowIDs()
             : MenuBarBridging.onScreenMenuBarWindowIDs()
-        return ids
+        return
+            ids
             .compactMap { MenuBarWindowInfo.read(windowID: $0) }
             .filter { info in
                 guard !info.isMenuBarBackdrop else {

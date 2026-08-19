@@ -62,8 +62,8 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
                     self.onboardingWindow?.close()
                 }
             })
-                .environmentObject(self.preferencesStore)
-                .environmentObject(self.bridge)
+            .environmentObject(self.preferencesStore)
+            .environmentObject(self.bridge)
         }
     }
 
@@ -108,9 +108,9 @@ final class AppCoordinator: NSObject, NSWindowDelegate {
         }
 
         if preferencesWindow == nil,
-           onboardingWindow == nil,
-           profileEditorWindow == nil,
-           diagnosticsWindow == nil
+            onboardingWindow == nil,
+            profileEditorWindow == nil,
+            diagnosticsWindow == nil
         {
             HiddenMenuBarTelemetry.windowing.debug("All auxiliary windows closed; returning to accessory activation")
             NSApplication.shared.setActivationPolicy(.accessory)
@@ -298,7 +298,8 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
         let host = url.host ?? ""
         let pathComponents = url.pathComponents.filter { $0 != "/" }
-        HiddenMenuBarTelemetry.commandExecution.info("Handling URL command: \(host, privacy: .public) \(pathComponents.joined(separator: "/"), privacy: .private)")
+        HiddenMenuBarTelemetry.commandExecution.info(
+            "Handling URL command: \(host, privacy: .public) \(pathComponents.joined(separator: "/"), privacy: .private)")
 
         switch host {
         case "toggle":
@@ -351,7 +352,7 @@ final class AppDelegate: NSObject, NSApplicationDelegate {
 
     @objc private func handleGetURLEvent(_ event: NSAppleEventDescriptor, withReplyEvent replyEvent: NSAppleEventDescriptor) {
         guard let urlString = event.paramDescriptor(forKeyword: AEKeyword(keyDirectObject))?.stringValue,
-              let url = URL(string: urlString)
+            let url = URL(string: urlString)
         else {
             return
         }

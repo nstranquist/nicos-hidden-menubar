@@ -119,12 +119,14 @@ private extension CGEvent {
         source: CGEventSource
     ) -> CGEvent? {
         let mouseType: CGEventType = (phase == .down) ? .leftMouseDown : .leftMouseUp
-        guard let event = CGEvent(
-            mouseEventSource: source,
-            mouseType: mouseType,
-            mouseCursorPosition: location,
-            mouseButton: .left
-        ) else {
+        guard
+            let event = CGEvent(
+                mouseEventSource: source,
+                mouseType: mouseType,
+                mouseCursorPosition: location,
+                mouseButton: .left
+            )
+        else {
             return nil
         }
         // No Command flag — this is a normal activation click, not a grab/drag.

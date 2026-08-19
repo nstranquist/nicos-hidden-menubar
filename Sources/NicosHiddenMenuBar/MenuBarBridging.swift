@@ -68,15 +68,18 @@ enum MenuBarBridging {
     /// spacer has made that item invisible, so collapse verification uses this
     /// stricter visual truth.
     static func renderedOnScreenWindowIDs() -> Set<CGWindowID>? {
-        guard let rows = CGWindowListCopyWindowInfo(
-            [.optionOnScreenOnly],
-            kCGNullWindowID
-        ) as? [[String: Any]] else {
+        guard
+            let rows = CGWindowListCopyWindowInfo(
+                [.optionOnScreenOnly],
+                kCGNullWindowID
+            ) as? [[String: Any]]
+        else {
             return nil
         }
-        return Set(rows.compactMap { row in
-            (row[kCGWindowNumber as String] as? NSNumber).map { CGWindowID($0.uint32Value) }
-        })
+        return Set(
+            rows.compactMap { row in
+                (row[kCGWindowNumber as String] as? NSNumber).map { CGWindowID($0.uint32Value) }
+            })
     }
 
     /// Screen-coordinate frame for a single window ID, or `nil` if unreadable.

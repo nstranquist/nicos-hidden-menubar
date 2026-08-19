@@ -98,7 +98,7 @@ final class SiblingExtraLabelTests: XCTestCase {
             extra(windowID: 2, x: 782, width: 64),
         ]
         let labels: [MenuBarAccessibilityCatalog.LabeledFrame] = [
-            .init(title: "Flash", frame: CGRect(x: 100, y: 0, width: 24, height: 24), pid: pid),
+            .init(title: "Flash", frame: CGRect(x: 100, y: 0, width: 24, height: 24), pid: pid)
         ]
 
         let items = LiveMenuBarDiscoveryService.discoveredItems(

@@ -159,7 +159,8 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
                 return true
             }
         }
-        normalized.firstPartyVisible.preferredVisibleTitles = FirstPartyVisibleTitles
+        normalized.firstPartyVisible.preferredVisibleTitles =
+            FirstPartyVisibleTitles
             .migratePolicyKeys(normalized.firstPartyVisible.preferredVisibleTitles)
             .filter { $0 != "HS" }
         // Earlier builds persisted Cocoa modifier masks while registering them
@@ -205,7 +206,8 @@ struct HiddenBarConfig: Codable, Equatable, Sendable {
     }
 
     var activeProfileSettings: HiddenBarProfile {
-        profiles[activeProfile] ?? profiles["default"] ?? HiddenBarProfile(autoCollapseEnabled: true, autoCollapseSeconds: 10, useRegularActivationOnExpand: false)
+        profiles[activeProfile] ?? profiles["default"]
+            ?? HiddenBarProfile(autoCollapseEnabled: true, autoCollapseSeconds: 10, useRegularActivationOnExpand: false)
     }
 }
 

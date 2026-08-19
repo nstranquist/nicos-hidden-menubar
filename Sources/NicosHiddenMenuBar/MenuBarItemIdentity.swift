@@ -113,7 +113,8 @@ enum ControlCenterModules {
             }
         }
         // Stable slug from title for unknown but titled modules.
-        let slug = haystack
+        let slug =
+            haystack
             .replacingOccurrences(of: " ", with: "-")
             .filter { $0.isLetter || $0.isNumber || $0 == "-" }
         return slug.isEmpty ? "module" : slug
@@ -154,7 +155,8 @@ enum ControlCenterModules {
             return ordinal > 0 ? "Control Center \(ordinal + 1)" : "Control Center"
         default:
             if let moduleID, !moduleID.isEmpty, moduleID != "module" {
-                return moduleID
+                return
+                    moduleID
                     .split(separator: "-")
                     .map { $0.capitalized }
                     .joined(separator: " ")

@@ -19,34 +19,41 @@ final class MarkerGeometryTests: XCTestCase {
     }
 
     func testStatusItemAnchorRejectsLaunchPlaceholderOnAnyDisplayOrigin() {
-        XCTAssertFalse(MarkerGeometry.isReadyStatusItemAnchor(
-            24, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
-        ))
-        XCTAssertTrue(MarkerGeometry.isReadyStatusItemAnchor(
-            1_295, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
-        ))
-        XCTAssertTrue(MarkerGeometry.isReadyStatusItemAnchor(
-            -120, screenMinX: -1_496, screenMidX: -748, screenMaxX: 0
-        ))
+        XCTAssertFalse(
+            MarkerGeometry.isReadyStatusItemAnchor(
+                24, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
+            ))
+        XCTAssertTrue(
+            MarkerGeometry.isReadyStatusItemAnchor(
+                1_295, screenMinX: 0, screenMidX: 748, screenMaxX: 1_496
+            ))
+        XCTAssertTrue(
+            MarkerGeometry.isReadyStatusItemAnchor(
+                -120, screenMinX: -1_496, screenMidX: -748, screenMaxX: 0
+            ))
     }
 
     func testCompactFallbackOnlyAppliesToFailedBelowMenuBarCollapse() {
-        XCTAssertTrue(MarkerGeometry.shouldUseCompactFallback(
-            revealsBelowMenuBar: true,
-            collapseHidItems: false
-        ))
-        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
-            revealsBelowMenuBar: false,
-            collapseHidItems: false
-        ))
-        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
-            revealsBelowMenuBar: true,
-            collapseHidItems: true
-        ))
-        XCTAssertFalse(MarkerGeometry.shouldUseCompactFallback(
-            revealsBelowMenuBar: true,
-            collapseHidItems: nil
-        ))
+        XCTAssertTrue(
+            MarkerGeometry.shouldUseCompactFallback(
+                revealsBelowMenuBar: true,
+                collapseHidItems: false
+            ))
+        XCTAssertFalse(
+            MarkerGeometry.shouldUseCompactFallback(
+                revealsBelowMenuBar: false,
+                collapseHidItems: false
+            ))
+        XCTAssertFalse(
+            MarkerGeometry.shouldUseCompactFallback(
+                revealsBelowMenuBar: true,
+                collapseHidItems: true
+            ))
+        XCTAssertFalse(
+            MarkerGeometry.shouldUseCompactFallback(
+                revealsBelowMenuBar: true,
+                collapseHidItems: nil
+            ))
     }
 
     func testCollapsedWidthUsesFrozenFormulaAndClamp() {
@@ -411,7 +418,7 @@ final class MarkerGeometryTests: XCTestCase {
 
     func testParkRestoreQueueEnqueueTakeRequeue() {
         var q = ParkRestoreQueue()
-        q.enqueue([10, 20, 10]) // dedupe
+        q.enqueue([10, 20, 10])  // dedupe
         XCTAssertEqual(q.pending, [10, 20])
         XCTAssertTrue(ParkRestoreQueue.canDrain(accessibilityTrusted: true, pendingCount: q.pending.count))
         XCTAssertFalse(ParkRestoreQueue.canDrain(accessibilityTrusted: false, pendingCount: q.pending.count))
@@ -486,7 +493,7 @@ final class MarkerGeometryTests: XCTestCase {
             succeededIndices: [0, 2],
             cancelled: false
         )
-        XCTAssertEqual(outcome.requeue, [2]) // wait: indices 0 and 2 succeeded, index 1 is id 2
+        XCTAssertEqual(outcome.requeue, [2])  // wait: indices 0 and 2 succeeded, index 1 is id 2
         // batch[0]=1 ok, batch[1]=2 fail, batch[2]=3 ok → requeue [2]
         XCTAssertEqual(Set(outcome.requeue), Set([UInt32(2)]))
         XCTAssertEqual(outcome.restoredCount, 2)

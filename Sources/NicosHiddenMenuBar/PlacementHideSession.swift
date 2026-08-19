@@ -134,7 +134,8 @@ struct PlacementHideSession: Equatable, Sendable {
         phase = .verifying
 
         // Hard commit invariants (AC1 fail-closed).
-        let fullOwnership = !planned.isEmpty
+        let fullOwnership =
+            !planned.isEmpty
             && ownedParks.count == planned.count
             && Set(ownedParks) == Set(planned)
 

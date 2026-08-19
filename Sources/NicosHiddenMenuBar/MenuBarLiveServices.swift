@@ -83,7 +83,8 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
         let assigned = MenuBarExtraLabelAssigner.assign(extras: extras, axLabels: axLabels)
 
         let raw = zip(details, assigned).map { info, assignment -> (namespace: String, title: String) in
-            let namespace = MenuBarWindowInfo.bundleIdentifier(forPID: info.ownerPID)
+            let namespace =
+                MenuBarWindowInfo.bundleIdentifier(forPID: info.ownerPID)
                 ?? info.ownerName
                 ?? "unknown"
             return (namespace, assignment.title)
@@ -124,8 +125,9 @@ final class LiveMenuBarDiscoveryService: MenuBarItemDiscovering {
             forModuleID: identity.moduleID,
             title: assignment.title,
             ordinal: identity.ordinal
-        ), identity.namespace.lowercased().contains("controlcenter")
-            || identity.namespace == ControlCenterModules.controlCenterNamespace
+        ),
+            identity.namespace.lowercased().contains("controlcenter")
+                || identity.namespace == ControlCenterModules.controlCenterNamespace
         {
             return ccName
         }
@@ -182,12 +184,13 @@ final class LiveMenuBarPlacementService: MenuBarItemPlacing {
             throw MenuBarPlacementError.targetUnavailable
         }
 
-        let destination: MenuBarItemMover.Destination = switch request.anchor {
-        case .leftOf(let anchor):
-            .leftOf(targetWindowID: anchor.windowID)
-        case .rightOf(let anchor):
-            .rightOf(targetWindowID: anchor.windowID)
-        }
+        let destination: MenuBarItemMover.Destination =
+            switch request.anchor {
+            case .leftOf(let anchor):
+                .leftOf(targetWindowID: anchor.windowID)
+            case .rightOf(let anchor):
+                .rightOf(targetWindowID: anchor.windowID)
+            }
         let enabled = forceEnabled || isMovementEnabled()
         do {
             try await move(request.item.windowID, destination, enabled)
@@ -497,7 +500,8 @@ extension MenuBarServices {
             "discovery": String(describing: type(of: discovery)),
             "placement": String(describing: type(of: placement)),
         ]
-        let usesExpectedLiveOwners = discovery is LiveMenuBarDiscoveryService
+        let usesExpectedLiveOwners =
+            discovery is LiveMenuBarDiscoveryService
             && placement is LiveMenuBarPlacementService
             && activation is LiveMenuBarActivationService
             && capture is LiveMenuBarCaptureService

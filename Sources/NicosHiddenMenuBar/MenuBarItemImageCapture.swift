@@ -54,11 +54,12 @@ enum MenuBarItemImageCapture {
         var results: [CapturedItem] = []
         results.reserveCapacity(items.count)
         for item in items {
-            let image: CGImage? = if let scWindow = scWindowsByID[item.windowID] {
-                await captureWindowSC(scWindow, scale: scale)
-            } else {
-                nil
-            }
+            let image: CGImage? =
+                if let scWindow = scWindowsByID[item.windowID] {
+                    await captureWindowSC(scWindow, scale: scale)
+                } else {
+                    nil
+                }
             results.append(
                 CapturedItem(
                     info: item.info,

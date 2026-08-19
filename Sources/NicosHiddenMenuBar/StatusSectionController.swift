@@ -213,15 +213,16 @@ final class StatusSectionController: NSObject {
         let revealsBelow = shouldRevealBelowMenuBar(on: targetScreen)
         let screenMinX = asDouble(targetScreen?.frame.minX)
         let screenMaxX = asDouble(targetScreen?.frame.maxX)
-        let screenVisibleMaxX = MarkerGeometry.preferredVisibleFrameMaxX(
-            primaryMinX: geometrySnapshot.primaryMinX,
-            preferredVisibleFrameMaxX: [
-                geometrySnapshot.toggleScreenVisibleMaxX,
-                geometrySnapshot.primaryScreenVisibleMaxX,
-                geometrySnapshot.mouseScreenVisibleMaxX,
-            ],
-            fallbackVisibleFrameMaxX: geometrySnapshot.allScreenVisibleMaxX
-        ) ?? asDouble(targetScreen?.visibleFrame.maxX)
+        let screenVisibleMaxX =
+            MarkerGeometry.preferredVisibleFrameMaxX(
+                primaryMinX: geometrySnapshot.primaryMinX,
+                preferredVisibleFrameMaxX: [
+                    geometrySnapshot.toggleScreenVisibleMaxX,
+                    geometrySnapshot.primaryScreenVisibleMaxX,
+                    geometrySnapshot.mouseScreenVisibleMaxX,
+                ],
+                fallbackVisibleFrameMaxX: geometrySnapshot.allScreenVisibleMaxX
+            ) ?? asDouble(targetScreen?.visibleFrame.maxX)
 
         let inputs = MenuBarCollapseInputs(
             toggleX: geometrySnapshot.toggleMinX,
@@ -313,9 +314,11 @@ final class StatusSectionController: NSObject {
         visibleMaxX: Double?,
         openPanelOnSuccess: Bool
     ) -> Bool {
-        guard AccessibilityGatePolicy.canAttemptPlacementHide(
-            trusted: PrivacyPermissions.isAccessibilityTrusted
-        ) else {
+        guard
+            AccessibilityGatePolicy.canAttemptPlacementHide(
+                trusted: PrivacyPermissions.isAccessibilityTrusted
+            )
+        else {
             rejectCollapse(.accessibilityRequired)
             return false
         }
@@ -510,9 +513,9 @@ final class StatusSectionController: NSObject {
         }
         // Visible-lane straggler: pull left of chevron first, then re-park absolute.
         if let toggleID,
-           let itemFrame = MenuBarBridging.frame(for: windowID),
-           let toggleFrame = MenuBarBridging.frame(for: toggleID),
-           itemFrame.midX > toggleFrame.midX
+            let itemFrame = MenuBarBridging.frame(for: windowID),
+            let toggleFrame = MenuBarBridging.frame(for: toggleID),
+            itemFrame.midX > toggleFrame.midX
         {
             try? await MenuBarItemMover.move(
                 windowID: windowID,
@@ -692,10 +695,10 @@ final class StatusSectionController: NSObject {
                     ]
                 )
                 if deferred == .accessibilityRequired,
-                   AccessibilityGatePolicy.shouldPromptOnCollapseRejection(
-                       trusted: PrivacyPermissions.isAccessibilityTrusted,
-                       alreadyPromptedThisSession: self.didPromptAccessibilityThisSession
-                   )
+                    AccessibilityGatePolicy.shouldPromptOnCollapseRejection(
+                        trusted: PrivacyPermissions.isAccessibilityTrusted,
+                        alreadyPromptedThisSession: self.didPromptAccessibilityThisSession
+                    )
                 {
                     self.didPromptAccessibilityThisSession = true
                     PrivacyPermissions.guideToAccessibilitySettingsIfNeeded(openSettings: true)
@@ -936,11 +939,12 @@ final class StatusSectionController: NSObject {
     }
 
     private func ownControlWindowIDs() -> Set<CGWindowID> {
-        Set([
-            toggleItem.button?.window.map { CGWindowID($0.windowNumber) },
-            primarySeparatorItem.button?.window.map { CGWindowID($0.windowNumber) },
-            secondarySeparatorItem.button?.window.map { CGWindowID($0.windowNumber) },
-        ].compactMap { $0 })
+        Set(
+            [
+                toggleItem.button?.window.map { CGWindowID($0.windowNumber) },
+                primarySeparatorItem.button?.window.map { CGWindowID($0.windowNumber) },
+                secondarySeparatorItem.button?.window.map { CGWindowID($0.windowNumber) },
+            ].compactMap { $0 })
     }
 
     private func failSpacer(on target: NSScreen?) {
@@ -980,10 +984,12 @@ final class StatusSectionController: NSObject {
             if !didAttemptMarkerAutoRepair {
                 scheduleMarkerRepair()
             }
-            record("reveal_panel_opening", publicFields: [
-                "mode": "repair_fallback",
-                "notch_support": preferencesStore.config.isNotchSupportEnabled ? "on" : "off",
-            ])
+            record(
+                "reveal_panel_opening",
+                publicFields: [
+                    "mode": "repair_fallback",
+                    "notch_support": preferencesStore.config.isNotchSupportEnabled ? "on" : "off",
+                ])
             presentRevealPanel(
                 near: Double(screen.frame.midX),
                 on: screen,
@@ -1024,10 +1030,12 @@ final class StatusSectionController: NSObject {
             }
             return
         }
-        record("reveal_panel_opening", publicFields: [
-            "notch_support": preferencesStore.config.isNotchSupportEnabled ? "on" : "off",
-            "has_notch_band": currentNotchGeometry(screen: screen) == nil ? "false" : "true",
-        ])
+        record(
+            "reveal_panel_opening",
+            publicFields: [
+                "notch_support": preferencesStore.config.isNotchSupportEnabled ? "on" : "off",
+                "has_notch_band": currentNotchGeometry(screen: screen) == nil ? "false" : "true",
+            ])
         presentRevealPanel(near: anchor, on: screen, laneBounds: bounds, forceShow: true)
     }
 
@@ -1041,7 +1049,7 @@ final class StatusSectionController: NSObject {
         record(
             "reveal_panel_reorder",
             publicFields: [
-                "has_before": beforeID == nil ? "false" : "true",
+                "has_before": beforeID == nil ? "false" : "true"
             ],
             privateFields: [
                 "dragged": String(draggedID),
@@ -1347,26 +1355,28 @@ final class StatusSectionController: NSObject {
 
     private func configureMenu() {
         contextMenu.removeAllItems()
-        contextMenu.addItem(hostedMenuItem(
-            HiddenMenuSummaryRow(
-                profileName: profileStore.activeProfileName,
-                toggleState: toggleState == .collapsed ? "collapsed" : "expanded",
-                autoCollapseText: autoCollapseSummary()
-            )
-        ))
+        contextMenu.addItem(
+            hostedMenuItem(
+                HiddenMenuSummaryRow(
+                    profileName: profileStore.activeProfileName,
+                    toggleState: toggleState == .collapsed ? "collapsed" : "expanded",
+                    autoCollapseText: autoCollapseSummary()
+                )
+            ))
         let axOK = PrivacyPermissions.isAccessibilityTrusted
         let geoOK = preferencesStore.diagnostics.geometryReadable
         let geometryLabel: String = {
             if !axOK { return "ok (Accessibility off)" }
             return geoOK ? "readable" : "needs repair"
         }()
-        contextMenu.addItem(hostedMenuItem(
-            HiddenMenuDiagnosticsRow(
-                markerStatus: preferencesStore.diagnostics.markerOrderStatus.rawValue,
-                geometryStatus: geometryLabel,
-                bridgeStatus: HammerspoonBridge.shared.status.code.rawValue
-            )
-        ))
+        contextMenu.addItem(
+            hostedMenuItem(
+                HiddenMenuDiagnosticsRow(
+                    markerStatus: preferencesStore.diagnostics.markerOrderStatus.rawValue,
+                    geometryStatus: geometryLabel,
+                    bridgeStatus: HammerspoonBridge.shared.status.code.rawValue
+                )
+            ))
         if !axOK {
             // Sticky top of menu — this is the real blocker, not geometry.
             let axItem = NSMenuItem(
@@ -1386,11 +1396,12 @@ final class StatusSectionController: NSObject {
         contextMenu.addItem(NSMenuItem(title: "Reveal Markers", action: #selector(menuRevealMarkers), keyEquivalent: "r"))
         contextMenu.addItem(NSMenuItem(title: "Repair Marker Positions", action: #selector(menuRepairMarkers), keyEquivalent: ""))
         if !parkRestoreQueue.isEmpty {
-            contextMenu.addItem(NSMenuItem(
-                title: "Retry Restore Hidden Items (\(parkRestoreQueue.pending.count))",
-                action: #selector(menuRetryParkRestore),
-                keyEquivalent: ""
-            ))
+            contextMenu.addItem(
+                NSMenuItem(
+                    title: "Retry Restore Hidden Items (\(parkRestoreQueue.pending.count))",
+                    action: #selector(menuRetryParkRestore),
+                    keyEquivalent: ""
+                ))
         }
         contextMenu.addItem(.separator())
         contextMenu.addItem(NSMenuItem(title: "Quit", action: #selector(menuQuit), keyEquivalent: "q"))
@@ -1475,7 +1486,8 @@ final class StatusSectionController: NSObject {
         if !axOK {
             button.toolTip = "Accessibility OFF (warning tint). Your chevron color returns when trust is restored."
         } else {
-            button.toolTip = revealsBelow
+            button.toolTip =
+                revealsBelow
                 ? "Show hidden items (⌘-drag to reorder · top strip unhides)"
                 : ((toggleState == .collapsed) ? "Expand hidden menu items" : "Collapse menu items")
         }
@@ -1523,7 +1535,8 @@ final class StatusSectionController: NSObject {
         // The primary item becomes a wide invisible spacer while collapsed.
         // Drawing the divider then centers it inside the empty region, which
         // looks like a stray marker in the middle of the display.
-        let hideMarkers = toggleState == .collapsed
+        let hideMarkers =
+            toggleState == .collapsed
             || (preferencesStore.config.hideMarkersWhileExpanded && toggleState == .expanded)
         primarySeparatorItem.button?.title = hideMarkers ? "" : "¦"
         secondarySeparatorItem.button?.title = hideMarkers ? "" : "¦"
@@ -1590,12 +1603,14 @@ final class StatusSectionController: NSObject {
         let toggleX = asDouble(toggleItem.button?.window?.frame.minX)
         let secondaryX = asDouble(secondarySeparatorItem.button?.window?.frame.minX)
         let alwaysHidden = preferencesStore.config.lanes.alwaysHiddenEnabled
-        guard MarkerGeometry.isValidOrder(
-            toggleX: toggleX,
-            primaryX: primaryX,
-            secondaryX: secondaryX,
-            alwaysHiddenEnabled: alwaysHidden
-        ) else {
+        guard
+            MarkerGeometry.isValidOrder(
+                toggleX: toggleX,
+                primaryX: primaryX,
+                secondaryX: secondaryX,
+                alwaysHiddenEnabled: alwaysHidden
+            )
+        else {
             return false
         }
         let screen = toggleItem.button?.window?.screen ?? activeMouseScreen()
@@ -1824,10 +1839,12 @@ final class StatusSectionController: NSObject {
         case .leftMouseDragged:
             let command = event.modifierFlags.contains(.command)
             let inBand = isMouseInMenuBarBand()
-            guard UserMenuBarCommandDragPolicy.shouldRevealMarkersForCommandDrag(
-                isCommand: command,
-                isInMenuBarBand: inBand
-            ) else { return }
+            guard
+                UserMenuBarCommandDragPolicy.shouldRevealMarkersForCommandDrag(
+                    isCommand: command,
+                    isInMenuBarBand: inBand
+                )
+            else { return }
             if !isUserDraggingMenuBarItems {
                 isUserDraggingMenuBarItems = true
                 autoCollapseWorkItem?.cancel()
@@ -2094,7 +2111,8 @@ final class StatusSectionController: NSObject {
             )
         }
 
-        let geometryOK = hideX != nil
+        let geometryOK =
+            hideX != nil
             && overflow?.rightUsableMinX != nil
             && overflow?.rightUsableMaxX != nil
             && screen != nil
@@ -2118,14 +2136,18 @@ final class StatusSectionController: NSObject {
     }
 
     fileprivate func performOneOverflowRescue(_ candidate: OverflowRescuePlanner.Candidate) async {
-        guard let separatorID = candidate.destination.hideSeparatorWindowID ?? primarySeparatorItem.button?.window.map({
-            CGWindowID($0.windowNumber)
-        }) else {
+        guard
+            let separatorID = candidate.destination.hideSeparatorWindowID
+                ?? primarySeparatorItem.button?.window.map({
+                    CGWindowID($0.windowNumber)
+                })
+        else {
             record("overflow_rescue_skipped", level: .debug, publicFields: ["reason": "missing_separator"])
             return
         }
 
-        let origin = MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
+        let origin =
+            MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
             ?? candidate.frame
         do {
             try await MenuBarItemMover.move(
@@ -2147,7 +2169,8 @@ final class StatusSectionController: NSObject {
             return
         }
 
-        let post = MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
+        let post =
+            MenuBarWindowInfo.read(windowID: CGWindowID(candidate.windowID))?.frame
             ?? MenuBarBridging.frame(for: CGWindowID(candidate.windowID))
         let screen = revealTargetScreen()
         let overflow = screen.flatMap(currentOverflowLayout(screen:))

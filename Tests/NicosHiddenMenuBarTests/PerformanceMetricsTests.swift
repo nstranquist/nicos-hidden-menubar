@@ -39,14 +39,14 @@ final class PerformanceMetricsTests: XCTestCase {
 
     func testPERF001OlderDiagnosticsDecodeWithoutPerformanceField() throws {
         let json = """
-        {
-          "markerOrderStatus": "unknown",
-          "geometryReadable": true,
-          "bridgeStatus": "unknown",
-          "hotkeyStatus": "unknown",
-          "updatedAt": "2026-07-29T00:00:00Z"
-        }
-        """
+            {
+              "markerOrderStatus": "unknown",
+              "geometryReadable": true,
+              "bridgeStatus": "unknown",
+              "hotkeyStatus": "unknown",
+              "updatedAt": "2026-07-29T00:00:00Z"
+            }
+            """
 
         let diagnostics = try JSONDecoder().decode(
             HiddenBarDiagnostics.self,

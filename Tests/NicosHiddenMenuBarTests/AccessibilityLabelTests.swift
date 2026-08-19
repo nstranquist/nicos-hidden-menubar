@@ -26,7 +26,7 @@ final class AccessibilityLabelTests: XCTestCase {
 
     func testBestTitleIgnoresFarFrames() {
         let labels: [MenuBarAccessibilityCatalog.LabeledFrame] = [
-            .init(title: "Wi‑Fi", frame: CGRect(x: 100, y: 0, width: 24, height: 24), pid: 42),
+            .init(title: "Wi‑Fi", frame: CGRect(x: 100, y: 0, width: 24, height: 24), pid: 42)
         ]
         let title = MenuBarAccessibilityCatalog.bestTitle(
             for: CGRect(x: 800, y: 0, width: 24, height: 24),
@@ -38,7 +38,7 @@ final class AccessibilityLabelTests: XCTestCase {
 
     func testBestTitleSingleGeometryLessLabelFallsBack() {
         let labels: [MenuBarAccessibilityCatalog.LabeledFrame] = [
-            .init(title: "Bluetooth", frame: .null, pid: 7),
+            .init(title: "Bluetooth", frame: .null, pid: 7)
         ]
         let title = MenuBarAccessibilityCatalog.bestTitle(
             for: CGRect(x: 10, y: 0, width: 20, height: 20),

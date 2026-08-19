@@ -68,7 +68,8 @@ enum MenuBarExtraLabelAssigner {
         // so a lone far extra does not claim a lone far label (existing matcher).
         let extrasByPID = Dictionary(grouping: extras.indices) { extras[$0].pid }
         for (pid, memberIndices) in extrasByPID {
-            let leftoverExtras = memberIndices
+            let leftoverExtras =
+                memberIndices
                 .filter { titles[$0].isEmpty }
                 .sorted { extras[$0].frame.midX < extras[$1].frame.midX }
             let leftoverLabels = axLabels.indices.filter { labelIndex in
@@ -85,8 +86,8 @@ enum MenuBarExtraLabelAssigner {
             }
 
             if memberIndices.count >= 2,
-               leftoverExtras.count == geometric.count,
-               leftoverExtras.count >= 1
+                leftoverExtras.count == geometric.count,
+                leftoverExtras.count >= 1
             {
                 let orderedLabels = geometric.sorted {
                     axLabels[$0].frame.midX < axLabels[$1].frame.midX
@@ -100,8 +101,8 @@ enum MenuBarExtraLabelAssigner {
 
             // Single geometry-less label: same fallback as `bestTitle`.
             if leftoverExtras.count == 1,
-               leftoverExtras.count == geometryLess.count,
-               geometric.isEmpty
+                leftoverExtras.count == geometryLess.count,
+                geometric.isEmpty
             {
                 titles[leftoverExtras[0]] = axLabels[geometryLess[0]].title
                 usedLabel[geometryLess[0]] = true

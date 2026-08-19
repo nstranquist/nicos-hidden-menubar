@@ -118,7 +118,8 @@ enum HiddenBarHeadlessSelfTest {
             let win = window()
             record("window-opened", win != nil, win.map { "opened \($0.title.isEmpty ? "window" : $0.title)" } ?? "no window created")
 
-            let noForeground = HiddenBarHeadless.foregroundActivationCount == 0
+            let noForeground =
+                HiddenBarHeadless.foregroundActivationCount == 0
                 && !NSApp.isActive
                 && NSApp.activationPolicy() == .accessory
             record(
@@ -128,8 +129,9 @@ enum HiddenBarHeadlessSelfTest {
             )
 
             if let win,
-               let shotPath = ProcessInfo.processInfo.environment["NICOS_HIDDEN_MENUBAR_SELFTEST_SCREENSHOT"],
-               !shotPath.isEmpty {
+                let shotPath = ProcessInfo.processInfo.environment["NICOS_HIDDEN_MENUBAR_SELFTEST_SCREENSHOT"],
+                !shotPath.isEmpty
+            {
                 let shot = captureWindow(win, to: shotPath)
                 record("window-screenshot", shot.ok, shot.detail)
             }

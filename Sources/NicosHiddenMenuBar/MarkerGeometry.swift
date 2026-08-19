@@ -58,7 +58,7 @@ public enum MarkerGeometry {
         screenMaxX: Double
     ) -> Bool {
         guard isMarkerOnScreen(toggleX, screenMinX: screenMinX, screenMaxX: screenMaxX),
-              isMarkerOnScreen(primaryX, screenMinX: screenMinX, screenMaxX: screenMaxX)
+            isMarkerOnScreen(primaryX, screenMinX: screenMinX, screenMaxX: screenMaxX)
         else {
             return false
         }
@@ -89,9 +89,9 @@ public enum MarkerGeometry {
         screenMaxX: Double?
     ) -> Double? {
         guard let primaryMinX,
-              let visibleFrameMaxX,
-              let screenMinX,
-              let screenMaxX
+            let visibleFrameMaxX,
+            let screenMinX,
+            let screenMaxX
         else {
             return nil
         }
@@ -123,7 +123,7 @@ public enum MarkerGeometry {
         compactWidth: Double
     ) -> Double? {
         guard let currentMinX, let currentWidth,
-              currentWidth >= 0, compactWidth >= 0
+            currentWidth >= 0, compactWidth >= 0
         else {
             return nil
         }
@@ -168,7 +168,8 @@ public enum MarkerGeometry {
             }
         }
 
-        return fallbackVisibleFrameMaxX
+        return
+            fallbackVisibleFrameMaxX
             .filter { collapsedWidth(visibleFrameMaxX: $0, primaryMinX: primaryMinX) != nil }
             .max()
     }
@@ -264,12 +265,12 @@ enum MenuBarCollapsePlanner {
         // surface, not a reason to bypass the proven hide mechanism.
         let spacerAllowed = !inputs.spacerStickyOnDisplay
         if spacerAllowed,
-           let collapseWidth = MarkerGeometry.safeCollapsedWidth(
-               visibleFrameMaxX: screenVisibleMaxX,
-               primaryMinX: inputs.primaryX,
-               screenMinX: screenMinX,
-               screenMaxX: screenMaxX
-           )
+            let collapseWidth = MarkerGeometry.safeCollapsedWidth(
+                visibleFrameMaxX: screenVisibleMaxX,
+                primaryMinX: inputs.primaryX,
+                screenMinX: screenMinX,
+                screenMaxX: screenMaxX
+            )
         {
             return .trySpacer(
                 MenuBarCollapsePlan(
@@ -448,7 +449,7 @@ enum ParkRestoreDrainPolicy {
         case .empty:
             return Outcome(requeue: [], allowAutoReschedule: false, deferred: nil, restoredCount: 0)
         case .ready:
-            return nil // proceed to move loop
+            return nil  // proceed to move loop
         case .deferred(let reason):
             return .deferred(batch: batch, reason: reason)
         }
@@ -500,10 +501,10 @@ enum ParkRestoreDrainPolicy {
     static func isExplicitRetryReason(_ reason: String) -> Bool {
         switch reason {
         case "menu_retry",
-             "after_accessibility_prompt",
-             "expand_restore",
-             "expand_restore_pending",
-             "session_restore":
+            "after_accessibility_prompt",
+            "expand_restore",
+            "expand_restore_pending",
+            "session_restore":
             return true
         default:
             // restore_coalesce only OK when not deferred — handled by allowAutoReschedule
@@ -550,7 +551,8 @@ enum MenuBarCollapseHidePlanner {
         visibleMaxX: Double,
         parkY: Double
     ) -> MenuBarCollapseHidePlan {
-        let movable = candidates
+        let movable =
+            candidates
             .filter(\.isMovable)
             .filter { laneBounds.isRevealCandidate(itemMinX: $0.midX, itemMaxX: $0.midX, itemMidX: $0.midX) }
             .sorted { $0.midX < $1.midX }
@@ -622,14 +624,15 @@ struct MenuBarLaneBounds: Equatable, Sendable {
             primaryX: primaryX,
             secondaryX: secondaryX,
             alwaysHiddenEnabled: alwaysHiddenEnabled
-        ) && MarkerGeometry.markersOnScreen(
-            toggleX: toggleX,
-            primaryX: primaryX,
-            secondaryX: secondaryX,
-            alwaysHiddenEnabled: alwaysHiddenEnabled,
-            screenMinX: screenMinX,
-            screenMaxX: screenMaxX
         )
+            && MarkerGeometry.markersOnScreen(
+                toggleX: toggleX,
+                primaryX: primaryX,
+                secondaryX: secondaryX,
+                alwaysHiddenEnabled: alwaysHiddenEnabled,
+                screenMinX: screenMinX,
+                screenMaxX: screenMaxX
+            )
     }
 
     func lane(forItemMidX midX: Double) -> MenuBarSectionLane {
