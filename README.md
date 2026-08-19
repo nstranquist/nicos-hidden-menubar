@@ -67,6 +67,18 @@ To remove the app, first disable **Launch at login** in Settings, then run:
 make uninstall
 ```
 
+## Usage
+
+1. Launch **Nicos Hidden Bar**. The Dock icon hides during normal use.
+2. Find the chevron and separator markers in the menu bar.
+3. Hold Command and drag status items into visible, hidden, or always-hidden regions.
+4. Click the chevron to reveal or collapse the hidden lane.
+5. Open Settings from the chevron (right-click) for layout, reveal mode, and permissions.
+6. Optional: set the global shortcut (off by default, `Ctrl+Option+Command+M`).
+7. Optional: open the searchable below-menu-bar panel on notched displays.
+
+URL scheme shortcuts (`nicoshiddenbar://toggle`, `nicoshiddenbar://reveal-panel`, and the rest listed under Configuration) work from Shortcuts, Hammerspoon, or a shell.
+
 ## First-run setup
 
 1. Find the chevron and separator markers in the menu bar.
@@ -173,6 +185,16 @@ that cannot be verified remains expanded instead of moving third-party items
 automatically.
 
 No configuration, diagnostics, screenshots, or telemetry leave the machine.
+
+## Troubleshooting
+
+- **The chevron is missing.** Quit other menu-bar editors, then relaunch. Option-click the remaining Hidden Bar markers if they are still present. `make uninstall` then `make install` restores the default layout.
+- **Hidden items do not activate from the panel.** Grant Accessibility: Settings → Permissions → **Add to Privacy Settings…**, or `open nicoshiddenbar://privacy`.
+- **Live icons are blank.** Screen Recording is optional. Without it, the panel shows SF Symbols and app icons.
+- **Accessibility broke after a rebuild.** Ad-hoc signatures lose TCC. Use `make install-stable` so the identity stays in the keychain.
+- **The reveal panel sits under the notch.** Enable notch support (on by default) and choose **Below the menu bar** in Settings.
+- **A collapse moved a third-party item.** Experimental movement is off by default. Turn it off under Settings if a collaborator enabled it.
+- **Launch at login will not die.** Disable it in Settings before `make uninstall`.
 
 ## License and provenance
 
