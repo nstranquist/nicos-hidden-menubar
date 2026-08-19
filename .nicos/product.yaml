@@ -9,7 +9,7 @@ jtbd: Hide infrequently used menu-bar items behind one native toggle while keepi
 competitor: Hidden Bar, Ice, Bartender
 pricing: Free and open source.
 launch: built
-launch_blocker: "Apple Developer Program membership is active and Developer ID Application identity C82D23RNQ9 is in the login Keychain (2026-08-19). Public source is ready. Downloadable binaries still need notarization and stapling."
+launch_blocker: "/Applications/NicosHiddenMenuBar.app is Developer ID signed, notarized, and stapled (C82D23RNQ9, 2026-08-19). Gatekeeper accepts Notarized Developer ID. Accessibility TCC needs one re-grant for the Developer ID identity (was Apple Development). Remaining: public GitHub release of the notarized binary."
 license: GPL-3.0
 refs:
     - kind: documented_by
