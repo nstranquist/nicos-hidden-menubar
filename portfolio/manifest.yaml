@@ -28,7 +28,7 @@ proof:
           evidence_kind: test
           evidence_url: https://github.com/nstranquist/nicos-hidden-menubar#development
     boundaries:
-        - The public release contains source and no notarized downloadable application binary.
+        - Local Notarized Developer ID install exists; the public GitHub release still has no downloadable notarized binary.
         - Optional synthesized item movement stays off until the user enables it.
 assets:
     - path: docs/assets/preferences-window.png
