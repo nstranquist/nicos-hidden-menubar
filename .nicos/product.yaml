@@ -9,7 +9,13 @@ jtbd: Hide infrequently used menu-bar items behind one native toggle while keepi
 competitor: Hidden Bar, Ice, Bartender
 pricing: Free and open source.
 launch: built
+launch_blocker: "Apple Developer Program membership is active (2026-08-19). Public source is ready. Downloadable binaries still need a Developer ID Application certificate and notarization."
 license: GPL-3.0
+refs:
+    - kind: documented_by
+      target: doc.apple-developer-program-membership
+    - kind: reads
+      target: capability.apple-distribution
 tags:
     - macos
     - swift
