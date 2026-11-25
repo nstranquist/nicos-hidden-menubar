@@ -38,7 +38,22 @@ extension MenuBarItemInfo {
     ]
 
     var isLikelyImmovable: Bool {
-        MenuBarItemInfo.immovableNamespaces.contains(namespace)
+        guard MenuBarItemInfo.immovableNamespaces.contains(namespace) else {
+            return false
+        }
+        // On macOS 26 Tahoe, third-party menu bar items are hosted under
+        // `com.apple.controlcenter`. Once AX supplies a non-system title
+        // (e.g. "Backups" or "Tailscale"), treat it as movable like any app.
+        if namespace.lowercased().contains("controlcenter") {
+            let trimmed = title.trimmingCharacters(in: .whitespacesAndNewlines)
+            if !trimmed.isEmpty {
+                let module = ControlCenterModules.moduleID(namespace: namespace, title: trimmed)
+                if !ControlCenterModules.isKnownSystemModule(module) {
+                    return false
+                }
+            }
+        }
+        return true
     }
 }
 

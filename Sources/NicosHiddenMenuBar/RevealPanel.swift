@@ -645,10 +645,18 @@ enum RevealPanelPresentation {
             }
 
             if isControlCenter {
-                // Keep under-notch / parked CC modules; drop the rest of the noise.
-                guard parked || keep else { continue }
                 let module = item.identity.moduleID ?? "module"
                 let isGeneric = module == "module" || module.isEmpty
+                // On macOS 26 Tahoe, third-party status items are proxied by
+                // Control Center (`com.apple.controlcenter`). Once AX resolves
+                // a non-system title, keep it as a normal app tile instead of
+                // dropping it as Control Center chrome.
+                if !isGeneric, !ControlCenterModules.isKnownSystemModule(module) {
+                    result.append(item)
+                    continue
+                }
+                // Keep under-notch / parked CC modules; drop the rest of the noise.
+                guard parked || keep else { continue }
                 if isGeneric, !keep {
                     if includedGenericParkedCC { continue }
                     includedGenericParkedCC = true

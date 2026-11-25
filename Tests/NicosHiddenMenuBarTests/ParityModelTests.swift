@@ -467,4 +467,44 @@ final class ParityModelTests: XCTestCase {
         XCTAssertEqual(parked.filter { $0.identity.namespace == ccNS }.count, 1)
         XCTAssertTrue(parked.contains { $0.displayName == "App" })
     }
+
+    func testTahoeControlCenterProxiedThirdPartyItemIsKeptAndMovable() {
+        let ccNS = "com.apple.controlcenter"
+        let proxiedInfo = MenuBarItemInfo(namespace: ccNS, title: "Backups")
+        XCTAssertFalse(proxiedInfo.isLikelyImmovable)
+        XCTAssertTrue(MenuBarItemInfo(namespace: ccNS, title: "Wi-Fi").isLikelyImmovable)
+        XCTAssertTrue(MenuBarItemInfo(namespace: ccNS, title: "").isLikelyImmovable)
+
+        let proxiedIdentity = MenuBarItemIdentity(
+            namespace: ccNS,
+            title: "Backups",
+            moduleID: ControlCenterModules.moduleID(namespace: ccNS, title: "Backups")
+        )
+        let proxiedItem = MenuBarDiscoveredItem(
+            handle: MenuBarItemHandle(windowID: 201, identity: proxiedIdentity),
+            identity: proxiedIdentity,
+            ownerPID: 823,
+            ownerName: "Control Center",
+            title: "Backups",
+            displayName: "Backups",
+            frame: CGRect(x: 1321, y: -1067, width: 46, height: 30)
+        )
+        let wifiIdentity = MenuBarItemIdentity(
+            namespace: ccNS,
+            title: "Wi-Fi",
+            moduleID: ControlCenterModules.moduleID(namespace: ccNS, title: "Wi-Fi")
+        )
+        let wifiItem = MenuBarDiscoveredItem(
+            handle: MenuBarItemHandle(windowID: 202, identity: wifiIdentity),
+            identity: wifiIdentity,
+            ownerPID: 823,
+            ownerName: "Control Center",
+            title: "Wi-Fi",
+            displayName: "Wi-Fi",
+            frame: CGRect(x: 1600, y: -1067, width: 38, height: 30)
+        )
+
+        let refined = RevealPanelPresentation.refine([proxiedItem, wifiItem], parkedWindowIDs: [])
+        XCTAssertEqual(refined.map(\.displayName), ["Backups"])
+    }
 }

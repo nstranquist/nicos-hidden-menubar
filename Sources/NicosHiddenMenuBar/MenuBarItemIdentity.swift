@@ -97,6 +97,15 @@ enum ControlCenterModules {
         ("user-switcher", ["user", "fast user"]),
     ]
 
+    static let knownModuleIDs: Set<String> = Set(knownModules.map(\.id))
+
+    /// True when `moduleID` matches a built-in macOS Control Center module
+    /// rather than a third-party app hosted under Control Center on macOS 26+.
+    static func isKnownSystemModule(_ moduleID: String?) -> Bool {
+        guard let moduleID else { return false }
+        return knownModuleIDs.contains(moduleID)
+    }
+
     static func moduleID(namespace: String, title: String) -> String? {
         let ns = namespace.lowercased()
         guard ns.contains("controlcenter") || ns == controlCenterNamespace else {

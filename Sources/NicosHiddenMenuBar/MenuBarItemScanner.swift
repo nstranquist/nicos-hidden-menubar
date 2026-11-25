@@ -38,14 +38,20 @@ enum MenuBarItemScanner {
     static func scan(screen: NSScreen, toggleMinX: Double?) -> Scan {
         let screenFrame = screen.frame
         let visibleMaxX = Double(screen.visibleFrame.maxX)
+        let primaryMaxY = Double(NSScreen.screens.first?.frame.maxY ?? screenFrame.maxY)
+        let menuBarHeight = Double(max(screenFrame.maxY - screen.visibleFrame.maxY, 32))
         let rawItems: [Item] = MenuBarBridging.onScreenMenuBarWindowIDs().compactMap { windowID in
             guard let frame = MenuBarBridging.frame(for: windowID) else {
                 return nil
             }
-            // CGS frames are in flipped (top-left origin) global space; only the x
-            // axis matters for our left/right reasoning, and it lines up with
-            // NSScreen.frame x. Keep items that horizontally belong to this screen.
-            guard frame.midX >= screenFrame.minX, frame.midX <= screenFrame.maxX else {
+            guard Self.belongsToScreen(
+                frame: frame,
+                screenFrame: screenFrame,
+                primaryScreenMaxY: primaryMaxY,
+                menuBarHeight: menuBarHeight,
+                includeParkedPastEdge: false,
+                visibleMaxX: visibleMaxX
+            ) else {
                 return nil
             }
             return Item(windowID: windowID, frame: frame)
@@ -70,6 +76,8 @@ enum MenuBarItemScanner {
     static func detailedItems(screen: NSScreen, includeParkedPastEdge: Bool = true) -> [MenuBarWindowInfo] {
         let screenFrame = screen.frame
         let visibleMaxX = Double(screen.visibleFrame.maxX)
+        let primaryMaxY = Double(NSScreen.screens.first?.frame.maxY ?? screenFrame.maxY)
+        let menuBarHeight = Double(max(screenFrame.maxY - screen.visibleFrame.maxY, 32))
         // Prefer full menu-bar list when we need parked (off-edge) items.
         let ids =
             includeParkedPastEdge
@@ -82,17 +90,49 @@ enum MenuBarItemScanner {
                 guard !info.isMenuBarBackdrop else {
                     return false
                 }
-                let mid = Double(info.frame.midX)
-                if mid >= screenFrame.minX && mid <= screenFrame.maxX {
-                    return true
-                }
-                // Parked past the right edge of this display's menu bar.
-                if includeParkedPastEdge, Double(info.frame.minX) >= visibleMaxX - 1 {
-                    return true
-                }
-                return false
+                return Self.belongsToScreen(
+                    frame: info.frame,
+                    screenFrame: screenFrame,
+                    primaryScreenMaxY: primaryMaxY,
+                    menuBarHeight: menuBarHeight,
+                    includeParkedPastEdge: includeParkedPastEdge,
+                    visibleMaxX: visibleMaxX
+                )
             }
             .sorted { $0.frame.minX < $1.frame.minX }
+    }
+
+    /// Pure screen-membership filter for CGS top-left global coordinates.
+    ///
+    /// Rejects zero-sized macOS 26 Tahoe Control Center placeholder windows
+    /// (`0x0`) and checks the flipped Quartz Y band so vertically stacked
+    /// displays with overlapping X ranges never leak items across screens.
+    static func belongsToScreen(
+        frame: CGRect,
+        screenFrame: CGRect,
+        primaryScreenMaxY: Double,
+        menuBarHeight: Double,
+        includeParkedPastEdge: Bool,
+        visibleMaxX: Double
+    ) -> Bool {
+        guard frame.width >= 1, frame.height >= 1 else {
+            return false
+        }
+        let quartzTopY = primaryScreenMaxY - Double(screenFrame.maxY)
+        let bandHeight = max(menuBarHeight, 44)
+        let midY = Double(frame.midY)
+        guard midY >= quartzTopY - 4, midY <= quartzTopY + bandHeight + 8 else {
+            return false
+        }
+        let midX = Double(frame.midX)
+        if midX >= Double(screenFrame.minX), midX <= Double(screenFrame.maxX) {
+            return true
+        }
+        // Parked past the right edge of this display's menu bar.
+        if includeParkedPastEdge, Double(frame.minX) >= visibleMaxX - 1 {
+            return true
+        }
+        return false
     }
 
     // MARK: Pure core (unit-testable)
